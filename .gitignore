@@ -2,7 +2,17 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/framework/cache/data
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
 /bootstrap/cache
+/vendor
+/database.sqlite
+/database/database.sqlite
 .env
 .env.backup
 .phpunit.result.cache
