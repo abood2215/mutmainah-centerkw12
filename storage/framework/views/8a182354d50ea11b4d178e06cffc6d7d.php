@@ -1,0 +1,157 @@
+<div dir="rtl" class="min-h-screen bg-[#F0F2FF] p-6 lg:p-8 animate-slide-up">
+
+    <!-- Header -->
+    <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-slate-900">إدارة <span class="text-indigo-600">المهام</span></h1>
+            <p class="text-sm text-slate-500 font-semibold mt-1">Loving Homes Task Center</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-sm">
+                <span class="text-xs font-bold text-slate-500">الحالة</span>
+                <select wire:model.live="filterStatus" class="text-sm font-bold text-slate-700 bg-transparent outline-none border-none">
+                    <option value="">الكل</option>
+                    <option value="pending">معلقة</option>
+                    <option value="inprogress">قيد التنفيذ</option>
+                    <option value="done">مكتملة</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-sm">
+                <span class="text-xs font-bold text-slate-500">الأولوية</span>
+                <select wire:model.live="filterPriority" class="text-sm font-bold text-slate-700 bg-transparent outline-none border-none">
+                    <option value="">الكل</option>
+                    <option value="low">منخفضة</option>
+                    <option value="medium">متوسطة</option>
+                    <option value="high">عالية</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-black text-slate-500 uppercase tracking-wider">معلقة</span>
+                <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-slate-800"><?php echo e($stats['pending']); ?></div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-black text-amber-600 uppercase tracking-wider">قيد التنفيذ</span>
+                <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-amber-600"><?php echo e($stats['inprogress']); ?></div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-black text-emerald-600 uppercase tracking-wider">مكتملة</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-emerald-600"><?php echo e($stats['done']); ?></div>
+        </div>
+
+        <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-5 shadow-lg shadow-red-500/20">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-black text-white/80 uppercase tracking-wider">متأخرة</span>
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-4xl font-black text-white"><?php echo e($stats['overdue']); ?></div>
+        </div>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="space-y-3">
+        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $tasks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $task): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+            <?php
+                $isOverdue = $task->status != 'done' && $task->due_date && $task->due_date < now();
+                $priorityColors = ['high'=>'bg-red-100 text-red-700','medium'=>'bg-amber-100 text-amber-700','low'=>'bg-slate-100 text-slate-600'];
+                $statusConfig   = ['pending'=>['bg-slate-100','text-slate-600'],'inprogress'=>['bg-amber-100','text-amber-700'],'done'=>['bg-emerald-100','text-emerald-700']];
+                [$sbg,$scl] = $statusConfig[$task->status] ?? ['bg-slate-100','text-slate-600'];
+                $pc = $priorityColors[$task->priority] ?? 'bg-slate-100 text-slate-600';
+            ?>
+            <div class="bg-white rounded-2xl border <?php echo e($isOverdue ? 'border-red-200 shadow-red-100' : 'border-slate-200'); ?> shadow-sm hover:shadow-md transition-all group">
+                <div class="flex items-center gap-5 p-5">
+                    <!-- Status Icon -->
+                    <div class="w-10 h-10 rounded-xl <?php echo e($sbg); ?> flex items-center justify-center flex-shrink-0">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($task->status == 'done'): ?>
+                            <svg class="w-5 h-5 <?php echo e($scl); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        <?php elseif($task->status == 'inprogress'): ?>
+                            <svg class="w-5 h-5 <?php echo e($scl); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        <?php else: ?>
+                            <svg class="w-5 h-5 <?php echo e($scl); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                            <h3 class="text-sm font-black text-slate-900 <?php echo e($isOverdue ? 'text-red-800' : ''); ?>"><?php echo e($task->title); ?></h3>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isOverdue): ?>
+                                <span class="bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">متأخرة!</span>
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <a href="<?php echo e(route('crm.client-show', $task->client->id)); ?>"
+                               class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                                <?php echo e($task->client->name); ?>
+
+                            </a>
+                            <span class="<?php echo e($pc); ?> text-[10px] font-bold px-2 py-0.5 rounded-md"><?php echo e($task->priority); ?></span>
+                        </div>
+                    </div>
+
+                    <!-- Due Date -->
+                    <div class="text-right hidden md:block">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-1">الموعد</div>
+                        <div class="text-sm font-black <?php echo e($isOverdue ? 'text-red-600' : 'text-slate-700'); ?>">
+                            <?php echo e($task->due_date ? $task->due_date->format('Y/m/d') : '—'); ?>
+
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <button class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-indigo-100 hover:text-indigo-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+            <div class="bg-white rounded-2xl border border-slate-200 py-24 text-center shadow-sm">
+                <svg class="w-12 h-12 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <p class="text-sm font-bold text-slate-400">لا توجد مهام</p>
+            </div>
+        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+    </div>
+</div>
+<?php /**PATH C:\Users\abd-allah\Desktop\New folder (2)\resources\views/livewire/crm/tasks.blade.php ENDPATH**/ ?>
