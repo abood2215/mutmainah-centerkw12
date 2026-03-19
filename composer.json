@@ -4,8 +4,8 @@
     "version": "1.0.0",
     "require": {
         "php": "^8.2",
-        "laravel/framework": "^11.0",
-        "livewire/livewire": "^3.4"
+        "laravel/framework": "^11",
+        "livewire/livewire": "^3"
     },
     "autoload": {
         "psr-4": {
