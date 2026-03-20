@@ -116,7 +116,9 @@ class ChatwootService
     {
         $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/contacts/{$contactId}/conversations");
         if (!$res->successful()) return [];
-        return $res->json('payload', []);
+        // Chatwoot يرجع { payload: { meta: {}, payload: [...] } }
+        $data = $res->json('payload', []);
+        return is_array($data) && isset($data['payload']) ? $data['payload'] : (array) $data;
     }
 
     /** إنشاء contact جديد */
