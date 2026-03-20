@@ -121,6 +121,15 @@
                             </td>
                             <td class="px-4 lg:px-6 py-4 text-left">
                                 <div class="flex items-center gap-1.5 justify-end">
+                                    @if($client->phone)
+                                    <a href="{{ route('crm.inbox') }}?phone={{ urlencode($client->phone) }}"
+                                       class="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+                                       title="فتح شات">
+                                        <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.925 0A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
+                                        </svg>
+                                    </a>
+                                    @endif
                                     <a href="{{ route('crm.client-show', $client->id) }}"
                                        class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-indigo-100 hover:text-indigo-600 flex items-center justify-center transition-colors">
                                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,18 +191,39 @@
                     @error('newName') <p class="text-red-500 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1.5">الهاتف</label>
-                        <input type="text" wire:model="newPhone" placeholder="965XXXXXXXX" dir="ltr"
-                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5">رقم الهاتف (واتساب)</label>
+                    <div class="flex gap-2" dir="ltr">
+                        <select wire:model="newCountryCode"
+                            class="border border-slate-200 rounded-xl px-2 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 bg-white text-slate-700 w-36 flex-shrink-0">
+                            <option value="965">🇰🇼 +965 الكويت</option>
+                            <option value="966">🇸🇦 +966 السعودية</option>
+                            <option value="971">🇦🇪 +971 الإمارات</option>
+                            <option value="974">🇶🇦 +974 قطر</option>
+                            <option value="973">🇧🇭 +973 البحرين</option>
+                            <option value="968">🇴🇲 +968 عُمان</option>
+                            <option value="962">🇯🇴 +962 الأردن</option>
+                            <option value="963">🇸🇾 +963 سوريا</option>
+                            <option value="964">🇮🇶 +964 العراق</option>
+                            <option value="961">🇱🇧 +961 لبنان</option>
+                            <option value="20">🇪🇬 +20 مصر</option>
+                            <option value="218">🇱🇾 +218 ليبيا</option>
+                            <option value="212">🇲🇦 +212 المغرب</option>
+                            <option value="90">🇹🇷 +90 تركيا</option>
+                            <option value="44">🇬🇧 +44 بريطانيا</option>
+                            <option value="1">🇺🇸 +1 أمريكا</option>
+                        </select>
+                        <input type="text" wire:model="newPhone" placeholder="XXXXXXXX"
+                            class="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400">
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1.5">البريد الإلكتروني</label>
-                        <input type="email" wire:model="newEmail" placeholder="email@example.com" dir="ltr"
-                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 @error('newEmail') border-red-400 @enderror">
-                        @error('newEmail') <p class="text-red-500 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
-                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1 font-semibold">أدخل الرقم بدون صفر في البداية</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5">البريد الإلكتروني</label>
+                    <input type="email" wire:model="newEmail" placeholder="email@example.com" dir="ltr"
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 @error('newEmail') border-red-400 @enderror">
+                    @error('newEmail') <p class="text-red-500 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">

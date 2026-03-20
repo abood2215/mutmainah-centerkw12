@@ -153,28 +153,54 @@
             </div>
 
             <!-- Messages -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-[#F0F2FF]"
-                 x-data
+            <div class="flex-1 overflow-y-auto p-4 no-scrollbar bg-[#ECE5DD]"
+                 x-data="{ lastCount: {{ count($messages) }} }"
                  x-init="$el.scrollTop = $el.scrollHeight"
-                 x-on:livewire:updated.window="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
+                 x-on:livewire:updated.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight; lastCount = {{ count($messages) }} })">
+
+                @php $prevDate = null; @endphp
 
                 @forelse($messages as $msg)
-                    <div class="flex {{ $msg['direction'] === 'out' ? 'justify-start' : 'justify-end' }}">
-                        <div class="max-w-[80%] sm:max-w-[70%]">
-                            <div class="px-4 py-3 rounded-2xl text-sm font-semibold leading-relaxed shadow-sm
+                    @php
+                        $msgDate = $msg['sent_at'] ? \Carbon\Carbon::parse($msg['sent_at']) : null;
+                        $showDate = $msgDate && $msgDate->toDateString() !== $prevDate;
+                        $prevDate = $msgDate?->toDateString();
+                    @endphp
+
+                    {{-- Date Separator --}}
+                    @if($showDate)
+                        <div class="flex justify-center my-3">
+                            <span class="bg-white/80 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
+                                {{ $msgDate->isToday() ? 'اليوم' : ($msgDate->isYesterday() ? 'أمس' : $msgDate->format('d/m/Y')) }}
+                            </span>
+                        </div>
+                    @endif
+
+                    {{-- Message Bubble --}}
+                    <div class="flex mb-1 {{ $msg['direction'] === 'out' ? 'justify-start' : 'justify-end' }}">
+                        <div class="relative max-w-[75%] sm:max-w-[65%]">
+                            <div class="px-3 py-2 rounded-2xl text-sm leading-relaxed shadow-sm
                                 {{ $msg['direction'] === 'out'
-                                    ? 'bg-indigo-600 text-white rounded-tr-sm'
-                                    : 'bg-white text-slate-800 border border-slate-200 rounded-tl-sm' }}">
-                                {{ $msg['content'] }}
-                            </div>
-                            <div class="text-[10px] mt-1 font-bold text-slate-400 flex items-center gap-1
-                                {{ $msg['direction'] === 'out' ? 'justify-end' : 'justify-start' }}">
-                                @if($msg['direction'] === 'in')
-                                    <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
-                                    </svg>
-                                @endif
-                                {{ $msg['sent_at'] ? \Carbon\Carbon::parse($msg['sent_at'])->format('H:i') : '' }}
+                                    ? 'bg-[#D9FDD3] text-slate-800 rounded-tl-sm'
+                                    : 'bg-white text-slate-800 rounded-tr-sm' }}">
+                                <p class="whitespace-pre-wrap break-words">{{ $msg['content'] }}</p>
+                                <div class="flex items-center gap-1 mt-0.5
+                                    {{ $msg['direction'] === 'out' ? 'justify-start' : 'justify-end' }}">
+                                    <span class="text-[10px] text-slate-400">
+                                        {{ $msgDate ? $msgDate->format('H:i') : '' }}
+                                    </span>
+                                    @if($msg['direction'] === 'out')
+                                        {{-- sent checkmark --}}
+                                        <svg class="w-3.5 h-3.5 text-indigo-400" viewBox="0 0 16 11" fill="currentColor">
+                                            <path d="M11.071.653a.75.75 0 0 1 .025 1.06l-6.5 7a.75.75 0 0 1-1.085 0l-3-3.228a.75.75 0 1 1 1.085-1.036L4.02 7.147l5.966-6.47a.75.75 0 0 1 1.086-.024z"/>
+                                        </svg>
+                                    @else
+                                        {{-- whatsapp icon --}}
+                                        <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.925 0A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
+                                        </svg>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -186,16 +212,18 @@
             </div>
 
             <!-- Input -->
-            <div class="bg-white border-t border-slate-200 p-3">
-                <form wire:submit.prevent="sendMessage" class="flex items-center gap-2">
-                    <input type="text" wire:model="newMessage"
-                        placeholder="اكتب رسالة..."
-                        x-on:keydown.enter.prevent="$wire.sendMessage()"
-                        class="flex-1 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 placeholder:text-slate-400">
+            <div class="bg-[#F0F2F5] border-t border-slate-200 px-3 py-2">
+                <form wire:submit.prevent="sendMessage" class="flex items-end gap-2">
+                    <div class="flex-1 bg-white rounded-2xl border border-slate-200 px-4 py-2.5 flex items-center shadow-sm">
+                        <input type="text" wire:model="newMessage"
+                            placeholder="اكتب رسالة..."
+                            x-on:keydown.enter.prevent="$wire.sendMessage()"
+                            class="flex-1 bg-transparent text-slate-800 text-sm font-medium focus:outline-none placeholder:text-slate-400">
+                    </div>
                     <button type="submit"
-                        class="w-11 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25 active:scale-95 transition-all flex-shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        class="w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all flex-shrink-0">
+                        <svg class="w-4 h-4 rotate-180" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>
                     </button>
                 </form>

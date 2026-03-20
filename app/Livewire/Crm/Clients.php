@@ -19,6 +19,7 @@ class Clients extends Component
     // New client modal
     public $showModal = false;
     public $newName = '';
+    public $newCountryCode = '965';
     public $newPhone = '';
     public $newEmail = '';
     public $newSource = 'whatsapp';
@@ -65,6 +66,7 @@ class Clients extends Component
     private function resetForm()
     {
         $this->newName = '';
+        $this->newCountryCode = '965';
         $this->newPhone = '';
         $this->newEmail = '';
         $this->newSource = 'whatsapp';
@@ -79,9 +81,11 @@ class Clients extends Component
     {
         $this->validate();
 
+        $fullPhone = $this->newPhone ? $this->newCountryCode . preg_replace('/^0+/', '', $this->newPhone) : null;
+
         $client = CrmClient::create([
             'name'       => $this->newName,
-            'phone'      => $this->newPhone ?: null,
+            'phone'      => $fullPhone,
             'email'      => $this->newEmail ?: null,
             'source'     => $this->newSource,
             'stage'      => $this->newStage,
@@ -100,6 +104,11 @@ class Clients extends Component
 
         $this->closeModal();
         session()->flash('message', 'تم إضافة العميل بنجاح');
+    }
+
+    public function startChat($clientId)
+    {
+        return redirect()->route('crm.inbox', ['client' => $clientId]);
     }
 
     public function deleteClient($id)
