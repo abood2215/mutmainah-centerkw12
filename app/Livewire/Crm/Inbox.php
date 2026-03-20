@@ -111,16 +111,13 @@ class Inbox extends Component
 
                 $this->messages = collect($raw)
                     ->filter(fn($m) => in_array($m['message_type'], [0, 1]))
-                    ->map(function ($m) {
-                        return [
-                            'id'        => $m['id'],
-                            'content'   => $m['content'] ?? '[رسالة فارغة]',
-                            'direction' => $m['message_type'] === 0 ? 'in' : 'out',
-                            'sent_at'   => isset($m['created_at'])
-                                           ? \Carbon\Carbon::createFromTimestamp($m['created_at'])->toDateTimeString()
-                                           : null,
-                        ];
-                    })->values()->all();
+                    ->map(fn($m) => [
+                        'id'        => $m['id'],
+                        'content'   => $m['content'] ?? '[رسالة فارغة]',
+                        'direction' => $m['message_type'] === 0 ? 'in' : 'out',
+                        'sent_at'   => isset($m['created_at']) ? \Carbon\Carbon::createFromTimestamp($m['created_at'])->toDateTimeString() : null,
+                        '_ts'       => $m['created_at'] ?? 0,
+                    ])->sortBy('_ts')->values()->all();
                 return;
             } catch (\Exception $e) {}
         }
