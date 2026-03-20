@@ -232,13 +232,6 @@ class Inbox extends Component
             })
             ->values()->all();
 
-        // تحويل activeConvData من array إلى object للـ view
-        $activeConvData = $this->activeConvData ? (object) array_merge($this->activeConvData, [
-            'last_message_at' => isset($this->activeConvData['last_message_at']) && $this->activeConvData['last_message_at']
-                ? \Carbon\Carbon::parse($this->activeConvData['last_message_at'])
-                : null,
-        ]) : null;
-
-        return view('livewire.crm.inbox', compact('filteredConversations', 'activeConvData'))->layout('layouts.app');
+        return view('livewire.crm.inbox', compact('filteredConversations'))->layout('layouts.app');
     }
 }

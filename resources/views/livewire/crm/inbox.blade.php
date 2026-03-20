@@ -115,20 +115,20 @@
                         </svg>
                     </button>
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white text-sm font-black shadow-sm">
-                        {{ mb_substr($activeConvData->client_name, 0, 1) }}
+                        {{ mb_substr($activeConvData['client_name'] ?? '', 0, 1) }}
                     </div>
                     <div>
-                        <h2 class="text-sm font-black text-slate-900">{{ $activeConvData->client_name }}</h2>
+                        <h2 class="text-sm font-black text-slate-900">{{ $activeConvData['client_name'] ?? '' }}</h2>
                         <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full {{ $activeConvData->status === 'open' ? 'bg-emerald-500' : 'bg-slate-300' }}"></div>
-                            <span class="text-xs text-slate-500 font-semibold" dir="ltr">{{ $activeConvData->client_phone }}</span>
+                            <div class="w-2 h-2 rounded-full {{ ($activeConvData['status'] ?? '') === 'open' ? 'bg-emerald-500' : 'bg-slate-300' }}"></div>
+                            <span class="text-xs text-slate-500 font-semibold" dir="ltr">{{ $activeConvData['client_phone'] ?? '' }}</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-2">
                     @php
-                        $rawPhone = preg_replace('/[^0-9]/', '', $activeConvData->client_phone ?? '');
+                        $rawPhone = preg_replace('/[^0-9]/', '', $activeConvData['client_phone'] ?? '');
                         $crmClient = null;
                         if ($rawPhone) {
                             $crmClient = \App\Models\CrmClient::all()
@@ -144,10 +144,10 @@
 
                     <button wire:click="toggleStatus({{ $activeConversationId }})"
                         class="text-xs font-black px-3 py-1.5 rounded-xl transition-all border
-                            {{ $activeConvData->status === 'open'
+                            {{ ($activeConvData['status'] ?? '') === 'open'
                                 ? 'bg-white border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600'
                                 : 'bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600' }}">
-                        {{ $activeConvData->status === 'open' ? 'إغلاق' : 'فتح' }}
+                        {{ ($activeConvData['status'] ?? '') === 'open' ? 'إغلاق' : 'فتح' }}
                     </button>
                 </div>
             </div>
