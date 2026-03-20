@@ -50,31 +50,31 @@
         <!-- List -->
         <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1" wire:poll.4000ms="loadConversations">
             @forelse($filteredConversations as $conv)
-                <div wire:click="selectConversation({{ $conv->id }})"
+                <div wire:click="selectConversation({{ $conv['id'] }})"
                      x-on:click="showChat = true"
                      class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border-2
-                        {{ $activeConversationId == $conv->id
+                        {{ $activeConversationId == $conv['id']
                             ? 'bg-indigo-50 border-indigo-200'
                             : 'border-transparent hover:bg-slate-50' }}">
 
                     <div class="relative flex-shrink-0">
                         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white text-sm font-black shadow-sm">
-                            {{ mb_substr($conv->client_name, 0, 1) }}
+                            {{ mb_substr($conv['client_name'], 0, 1) }}
                         </div>
-                        @if($conv->unread > 0)
+                        @if($conv['unread'] > 0)
                             <span class="absolute -top-1 -left-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                                {{ $conv->unread }}
+                                {{ $conv['unread'] }}
                             </span>
                         @endif
                     </div>
 
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-sm font-black text-slate-900 truncate {{ $conv->unread > 0 ? 'text-indigo-700' : '' }}">
-                                {{ $conv->client_name }}
+                            <h3 class="text-sm font-black text-slate-900 truncate {{ $conv['unread'] > 0 ? 'text-indigo-700' : '' }}">
+                                {{ $conv['client_name'] }}
                             </h3>
                             <span class="text-[10px] text-slate-400 font-semibold flex-shrink-0 mr-1">
-                                {{ $conv->last_message_at ? $conv->last_message_at->diffForHumans(null, true) : '—' }}
+                                {{ $conv['last_message_at'] ? \Carbon\Carbon::parse($conv['last_message_at'])->diffForHumans(null, true) : '—' }}
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5 mt-0.5">
@@ -82,9 +82,9 @@
                                 <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
                             </svg>
                             <span class="text-[10px] text-slate-400 font-semibold truncate" dir="ltr">
-                                {{ $conv->client_phone ?: 'WhatsApp' }}
+                                {{ $conv['client_phone'] ?: 'WhatsApp' }}
                             </span>
-                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $conv->status === 'open' ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
+                            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $conv['status'] === 'open' ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
                         </div>
                     </div>
                 </div>
@@ -159,22 +159,22 @@
                  x-on:livewire:updated.window="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
 
                 @forelse($messages as $msg)
-                    <div class="flex {{ $msg->direction === 'out' ? 'justify-start' : 'justify-end' }}">
+                    <div class="flex {{ $msg['direction'] === 'out' ? 'justify-start' : 'justify-end' }}">
                         <div class="max-w-[80%] sm:max-w-[70%]">
                             <div class="px-4 py-3 rounded-2xl text-sm font-semibold leading-relaxed shadow-sm
-                                {{ $msg->direction === 'out'
+                                {{ $msg['direction'] === 'out'
                                     ? 'bg-indigo-600 text-white rounded-tr-sm'
                                     : 'bg-white text-slate-800 border border-slate-200 rounded-tl-sm' }}">
-                                {{ $msg->content }}
+                                {{ $msg['content'] }}
                             </div>
                             <div class="text-[10px] mt-1 font-bold text-slate-400 flex items-center gap-1
-                                {{ $msg->direction === 'out' ? 'justify-end' : 'justify-start' }}">
-                                @if($msg->direction === 'in')
+                                {{ $msg['direction'] === 'out' ? 'justify-end' : 'justify-start' }}">
+                                @if($msg['direction'] === 'in')
                                     <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
                                     </svg>
                                 @endif
-                                {{ $msg->sent_at ? $msg->sent_at->format('H:i') : '' }}
+                                {{ $msg['sent_at'] ? \Carbon\Carbon::parse($msg['sent_at'])->format('H:i') : '' }}
                             </div>
                         </div>
                     </div>

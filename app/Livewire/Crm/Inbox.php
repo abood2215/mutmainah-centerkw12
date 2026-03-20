@@ -18,7 +18,6 @@ class Inbox extends Component
     public $filterChannel   = '';
     public $filterStatus    = '';
     public $searchQuery     = '';
-    public $activeConvData  = null;
     public $source          = 'local'; // local | chatwoot
 
     public function mount()
@@ -36,11 +35,11 @@ class Inbox extends Component
             if (!empty($raw)) {
                 $this->source = 'chatwoot';
                 $this->conversations = collect($raw)->map(function ($c) {
-                    return (object)[
+                    return [
                         'id'              => $c['id'],
                         'status'          => $c['status'],
                         'last_message_at' => isset($c['last_activity_at'])
-                                             ? \Carbon\Carbon::createFromTimestamp($c['last_activity_at'])
+                                             ? \Carbon\Carbon::createFromTimestamp($c['last_activity_at'])->toDateTimeString()
                                              : null,
                         'channel'         => 'whatsapp',
                         'client_name'     => $c['meta']['sender']['name'] ?? 'مجهول',
@@ -60,10 +59,10 @@ class Inbox extends Component
             ->orderBy('last_message_at', 'desc')
             ->get()
             ->map(function ($c) {
-                return (object)[
+                return [
                     'id'              => $c->id,
                     'status'          => $c->status,
-                    'last_message_at' => $c->last_message_at,
+                    'last_message_at' => $c->last_message_at?->toDateTimeString(),
                     'channel'         => $c->channel,
                     'client_name'     => $c->client->name ?? '—',
                     'client_phone'    => $c->client->phone ?? '',
@@ -76,15 +75,6 @@ class Inbox extends Component
     public function selectConversation($id)
     {
         $this->activeConversationId = $id;
-        $this->activeConvData = null;
-
-        foreach ($this->conversations as $c) {
-            if ($c->id == $id) {
-                $this->activeConvData = $c;
-                break;
-            }
-        }
-
         $this->loadMessages();
     }
 
@@ -100,12 +90,12 @@ class Inbox extends Component
                 $this->messages = collect($raw)
                     ->filter(fn($m) => in_array($m['message_type'], [0, 1]))
                     ->map(function ($m) {
-                        return (object)[
+                        return [
                             'id'        => $m['id'],
                             'content'   => $m['content'] ?? '[رسالة فارغة]',
                             'direction' => $m['message_type'] === 0 ? 'in' : 'out',
                             'sent_at'   => isset($m['created_at'])
-                                           ? \Carbon\Carbon::createFromTimestamp($m['created_at'])
+                                           ? \Carbon\Carbon::createFromTimestamp($m['created_at'])->toDateTimeString()
                                            : null,
                         ];
                     })->values()->all();
@@ -118,11 +108,11 @@ class Inbox extends Component
             ->orderBy('sent_at', 'asc')
             ->get()
             ->map(function ($m) {
-                return (object)[
+                return [
                     'id'        => $m->id,
                     'content'   => $m->content,
                     'direction' => $m->direction,
-                    'sent_at'   => $m->sent_at,
+                    'sent_at'   => $m->sent_at?->toDateTimeString(),
                 ];
             })->values()->all();
     }
@@ -164,7 +154,8 @@ class Inbox extends Component
         if ($this->source === 'chatwoot') {
             try {
                 $chatwoot = new ChatwootService();
-                $currentStatus = $this->activeConvData?->status ?? 'open';
+                $currentConv = collect($this->conversations)->first(fn($c) => $c['id'] == $id);
+                $currentStatus = $currentConv['status'] ?? 'open';
                 $newStatus = $currentStatus === 'open' ? 'resolved' : 'open';
                 $chatwoot->toggleStatus($id, $newStatus);
             } catch (\Exception $e) {}
@@ -188,17 +179,30 @@ class Inbox extends Component
 
     public function render()
     {
-        $filteredConversations = collect($this->conversations)
-            ->when($this->filterStatus, fn($c) => $c->filter(fn($conv) => $conv->status === $this->filterStatus))
+        $allConversations = collect($this->conversations);
+
+        $filteredConversations = $allConversations
+            ->when($this->filterStatus, fn($c) => $c->filter(fn($conv) => $conv['status'] === $this->filterStatus))
             ->when($this->searchQuery, function ($c) {
                 $q = mb_strtolower($this->searchQuery);
                 return $c->filter(fn($conv) =>
-                    str_contains(mb_strtolower($conv->client_name), $q) ||
-                    str_contains($conv->client_phone, $q)
+                    str_contains(mb_strtolower($conv['client_name']), $q) ||
+                    str_contains($conv['client_phone'], $q)
                 );
             })
             ->values()->all();
 
-        return view('livewire.crm.inbox', compact('filteredConversations'))->layout('layouts.app');
+        $activeConvDataRaw = $this->activeConversationId
+            ? $allConversations->first(fn($c) => $c['id'] == $this->activeConversationId)
+            : null;
+
+        // تحويل إلى object للـ view
+        $activeConvData = $activeConvDataRaw ? (object) array_merge($activeConvDataRaw, [
+            'last_message_at' => $activeConvDataRaw['last_message_at']
+                ? \Carbon\Carbon::parse($activeConvDataRaw['last_message_at'])
+                : null,
+        ]) : null;
+
+        return view('livewire.crm.inbox', compact('filteredConversations', 'activeConvData'))->layout('layouts.app');
     }
 }
