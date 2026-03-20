@@ -26,7 +26,7 @@
 
         <div class="flex gap-2 w-full sm:w-auto">
             @if($client->phone)
-            <a href="{{ route('crm.inbox') }}?phone={{ urlencode($client->phone) }}"
+            <a href="{{ route('crm.inbox') }}?phone={{ urlencode($client->phone) }}&name={{ urlencode($client->name) }}"
                class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-emerald-500/25 active:scale-95 transition-all">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>

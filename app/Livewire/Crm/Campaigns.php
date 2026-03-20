@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\CrmCampaign;
 use App\Models\CrmClient;
 use App\Models\CrmCampaignRecipient;
+use App\Services\ChatwootService;
 
 class Campaigns extends Component
 {
@@ -49,6 +50,45 @@ class Campaigns extends Component
         $this->reset(['title', 'message', 'type', 'targetFilter', 'targetValue', 'scheduledAt']);
         $this->loadCampaigns();
         session()->flash('success', 'تم إنشاء الحملة بنجاح');
+    }
+
+    public function sendCampaign($campaignId)
+    {
+        $campaign = CrmCampaign::find($campaignId);
+        if (!$campaign || $campaign->status === 'sent') return;
+
+        $clients = $campaign->resolveTargetClients()
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get();
+
+        $sent = 0;
+        try {
+            $chatwoot = new ChatwootService();
+            foreach ($clients as $client) {
+                try {
+                    $chatwoot->sendToPhone($client->name, $client->phone, $campaign->message);
+                    $sent++;
+                    // تأخير بسيط لتجنب flood
+                    usleep(300000); // 0.3 ثانية
+                } catch (\Exception $e) {}
+            }
+        } catch (\Exception $e) {}
+
+        $campaign->update([
+            'status'           => 'sent',
+            'sent_at'          => now(),
+            'recipients_count' => $sent,
+        ]);
+
+        $this->loadCampaigns();
+        session()->flash('success', "تم إرسال الحملة لـ {$sent} عميل");
+    }
+
+    public function deleteCampaign($campaignId)
+    {
+        CrmCampaign::where('id', $campaignId)->whereNotIn('status', ['sent'])->delete();
+        $this->loadCampaigns();
     }
 
     public function getAudienceCountProperty()

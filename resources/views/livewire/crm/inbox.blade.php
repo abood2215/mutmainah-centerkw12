@@ -1,6 +1,6 @@
 <div dir="rtl" class="flex bg-[#F0F2FF] overflow-hidden" style="height: calc(100vh - 53px);"
      wire:poll.3000ms="refreshAll"
-     x-data="{ showChat: {{ $activeConversationId ? 'true' : 'false' }} }"
+     x-data="{ showChat: {{ ($activeConversationId || $pendingClientPhone) ? 'true' : 'false' }} }"
      x-on:livewire:updated.window="if ($wire.activeConversationId) showChat = true">
 
     <!-- Conversations List -->
@@ -222,6 +222,55 @@
                     </div>
                     <button type="submit"
                         class="w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all flex-shrink-0">
+                        <svg class="w-4 h-4 rotate-180" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+        @elseif($pendingClientPhone)
+            <!-- New Conversation UI -->
+            <div class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-3">
+                    <button x-on:click="showChat = false" class="md:hidden w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-slate-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white text-sm font-black shadow-sm">
+                        {{ $pendingClientName ? mb_substr($pendingClientName, 0, 1) : '?' }}
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-black text-slate-900">{{ $pendingClientName ?: 'عميل جديد' }}</h2>
+                        <span class="text-xs text-slate-500 font-semibold" dir="ltr">{{ $pendingClientPhone }}</span>
+                    </div>
+                </div>
+                <span class="text-[10px] font-black px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700">
+                    محادثة جديدة
+                </span>
+            </div>
+
+            <div class="flex-1 flex flex-col items-center justify-center bg-[#ECE5DD] gap-3 p-6">
+                <div class="w-16 h-16 rounded-3xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                    <svg class="w-8 h-8 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
+                    </svg>
+                </div>
+                <p class="text-sm font-black text-slate-600">لا توجد محادثة سابقة</p>
+                <p class="text-xs text-slate-400 font-semibold text-center">اكتب رسالتك الأولى أدناه لبدء محادثة مع<br><span class="text-slate-700 font-black">{{ $pendingClientName ?: $pendingClientPhone }}</span></p>
+            </div>
+
+            <div class="bg-[#F0F2F5] border-t border-slate-200 px-3 py-2">
+                <form wire:submit.prevent="sendMessage" class="flex items-end gap-2">
+                    <div class="flex-1 bg-white rounded-2xl border border-slate-200 px-4 py-2.5 flex items-center shadow-sm">
+                        <input type="text" wire:model="newMessage"
+                            placeholder="اكتب رسالتك الأولى..."
+                            x-on:keydown.enter.prevent="$wire.sendMessage()"
+                            class="flex-1 bg-transparent text-slate-800 text-sm font-medium focus:outline-none placeholder:text-slate-400">
+                    </div>
+                    <button type="submit"
+                        class="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all flex-shrink-0">
                         <svg class="w-4 h-4 rotate-180" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>

@@ -21,6 +21,10 @@ class Inbox extends Component
     public $searchQuery     = '';
     public $source          = 'local'; // local | chatwoot
 
+    // لبدء محادثة جديدة مع عميل ما عنده محادثة بعد
+    public $pendingClientPhone = '';
+    public $pendingClientName  = '';
+
     public function mount()
     {
         $this->loadConversations();
@@ -32,8 +36,9 @@ class Inbox extends Component
             if ($foundId) {
                 $this->selectConversation($foundId);
             } else {
-                // ما لقينا محادثة ← خلي البحث يساعد المستخدم
-                $this->searchQuery = preg_replace('/[^0-9]/', '', $phone);
+                // ما في محادثة بعد → جهّز UI لبدء محادثة جديدة
+                $this->pendingClientPhone = $phone;
+                $this->pendingClientName  = request('name', '');
             }
         }
     }
@@ -194,9 +199,53 @@ class Inbox extends Component
             })->values()->all();
     }
 
+    public function startNewConversation()
+    {
+        if (!$this->pendingClientPhone || empty(trim($this->newMessage))) return;
+
+        if ($this->source === 'chatwoot') {
+            try {
+                $chatwoot = new ChatwootService();
+
+                // ابحث عن contact أو أنشئ جديد
+                $contact = $chatwoot->searchContact($this->pendingClientPhone);
+                if (!$contact) {
+                    $contact = $chatwoot->createContact(
+                        $this->pendingClientName ?: 'عميل',
+                        $this->pendingClientPhone
+                    );
+                }
+
+                if ($contact && isset($contact['id'])) {
+                    $conv = $chatwoot->createConversation((int) $contact['id']);
+                    if ($conv && isset($conv['id'])) {
+                        $convId = (int) $conv['id'];
+                        $chatwoot->sendMessage($convId, $this->newMessage);
+                        $this->newMessage        = '';
+                        $this->pendingClientPhone = '';
+                        $this->pendingClientName  = '';
+                        $this->loadConversations();
+                        $this->selectConversation($convId);
+                        return;
+                    }
+                }
+            } catch (\Exception $e) {}
+        }
+
+        $this->newMessage = '';
+    }
+
     public function sendMessage()
     {
-        if (empty(trim($this->newMessage)) || !$this->activeConversationId) return;
+        if (empty(trim($this->newMessage))) return;
+
+        // إذا في محادثة pending (عميل جديد)
+        if ($this->pendingClientPhone && !$this->activeConversationId) {
+            $this->startNewConversation();
+            return;
+        }
+
+        if (!$this->activeConversationId) return;
 
         if ($this->source === 'chatwoot') {
             try {

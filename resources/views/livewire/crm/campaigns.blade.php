@@ -1,5 +1,14 @@
 <div dir="rtl" class="min-h-screen bg-[#F0F2FF] p-6 lg:p-8 animate-slide-up">
 
+    @if(session('success'))
+    <div class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold px-4 py-3 rounded-xl flex items-center gap-2">
+        <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        {{ session('success') }}
+    </div>
+    @endif
+
     <!-- Header -->
     <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4">
         <div>
@@ -122,6 +131,25 @@
                                     <div class="text-2xl font-black text-indigo-700">{{ $campaign->replies_count }}</div>
                                 </div>
                             </div>
+
+                            @if($campaign->status !== 'sent')
+                            <div class="flex gap-2 mt-3">
+                                <button wire:click="sendCampaign({{ $campaign->id }})"
+                                    wire:confirm="إرسال الحملة الآن لكل العملاء المستهدفين؟"
+                                    class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
+                                    </svg>
+                                    إرسال الآن
+                                </button>
+                                <button wire:click="deleteCampaign({{ $campaign->id }})"
+                                    class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl transition-all flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
