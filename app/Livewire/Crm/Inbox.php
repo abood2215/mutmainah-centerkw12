@@ -27,15 +27,61 @@ class Inbox extends Component
 
         // افتح محادثة العميل تلقائياً لما يجي من ملف العميل
         if ($phone = request('phone')) {
-            $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
-            foreach ($this->conversations as $conv) {
-                $convPhone = preg_replace('/[^0-9]/', '', $conv['client_phone'] ?? '');
-                if ($convPhone && str_ends_with($cleanPhone, $convPhone) || str_ends_with($convPhone, $cleanPhone)) {
-                    $this->selectConversation($conv['id']);
-                    break;
-                }
+            $foundId = $this->findConversationByPhone($phone);
+
+            if ($foundId) {
+                $this->selectConversation($foundId);
+            } else {
+                // ما لقينا محادثة ← خلي البحث يساعد المستخدم
+                $this->searchQuery = preg_replace('/[^0-9]/', '', $phone);
             }
         }
+    }
+
+    private function findConversationByPhone(string $phone): ?int
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+
+        // 1. البحث عبر Chatwoot contact search (أدق)
+        if ($this->source === 'chatwoot') {
+            try {
+                $chatwoot = new ChatwootService();
+
+                // جرّب البحث بالرقم الكامل وبـ + أيضاً
+                foreach ([$phone, '+' . ltrim($phone, '+')] as $searchTerm) {
+                    $contact = $chatwoot->searchContact($searchTerm);
+                    if ($contact && isset($contact['id'])) {
+                        $convs = $chatwoot->getContactConversations((int) $contact['id']);
+                        // خذ أحدث محادثة في نفس الـ inbox
+                        $inboxId = config('chatwoot.inbox_id');
+                        $found = collect($convs)
+                            ->filter(fn($c) => ($c['inbox_id'] ?? 0) == $inboxId)
+                            ->sortByDesc('last_activity_at')
+                            ->first();
+
+                        // إذا ما فلّينا بالـ inbox, خذ أي محادثة
+                        if (!$found) {
+                            $found = collect($convs)->sortByDesc('last_activity_at')->first();
+                        }
+
+                        if ($found) return (int) $found['id'];
+                    }
+                }
+            } catch (\Exception $e) {}
+        }
+
+        // 2. مطابقة بالأرقام في المحادثات المحمّلة
+        foreach ($this->conversations as $conv) {
+            $convPhone = preg_replace('/[^0-9]/', '', $conv['client_phone'] ?? '');
+            if (!$convPhone) continue;
+            if ($cleanPhone === $convPhone ||
+                str_ends_with($cleanPhone, substr($convPhone, -9)) ||
+                str_ends_with($convPhone, substr($cleanPhone, -9))) {
+                return (int) $conv['id'];
+            }
+        }
+
+        return null;
     }
 
     public function loadConversations()

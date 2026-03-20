@@ -111,6 +111,14 @@ class ChatwootService
         return $payload[0] ?? null;
     }
 
+    /** جلب محادثات contact معين */
+    public function getContactConversations(int $contactId): array
+    {
+        $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/contacts/{$contactId}/conversations");
+        if (!$res->successful()) return [];
+        return $res->json('payload', []);
+    }
+
     /** إنشاء contact جديد */
     public function createContact(string $name, string $phone): ?array
     {
