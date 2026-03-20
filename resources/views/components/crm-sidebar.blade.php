@@ -62,7 +62,7 @@
                 م
             </div>
             <div class="flex-1 min-w-0">
-                <div class="text-xs font-black text-slate-800 leading-none truncate">مدير النظام</div>
+                <div class="text-xs font-black text-slate-800 leading-none truncate"> النظام</div>
                 <div class="text-[9px] text-slate-400 font-bold mt-0.5 uppercase tracking-wide">Admin</div>
             </div>
             <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></div>
