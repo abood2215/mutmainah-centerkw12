@@ -186,9 +186,9 @@ class Inbox extends Component
         $this->loadMessages();
     }
 
-    public function getFilteredConversationsProperty(): array
+    public function render()
     {
-        return collect($this->conversations)
+        $filteredConversations = collect($this->conversations)
             ->when($this->filterStatus, fn($c) => $c->filter(fn($conv) => $conv->status === $this->filterStatus))
             ->when($this->searchQuery, function ($c) {
                 $q = mb_strtolower($this->searchQuery);
@@ -198,10 +198,7 @@ class Inbox extends Component
                 );
             })
             ->values()->all();
-    }
 
-    public function render()
-    {
-        return view('livewire.crm.inbox')->layout('layouts.app');
+        return view('livewire.crm.inbox', compact('filteredConversations'))->layout('layouts.app');
     }
 }
