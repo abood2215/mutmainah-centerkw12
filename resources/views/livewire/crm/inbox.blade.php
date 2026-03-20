@@ -201,6 +201,13 @@
                 </form>
             </div>
 
+        @elseif($activeConversationId)
+            <!-- Loading State -->
+            <div class="flex-1 flex flex-col items-center justify-center text-slate-400 p-6" wire:loading>
+                <div class="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mb-3"></div>
+                <p class="text-sm font-bold text-slate-500">جاري تحميل المحادثة...</p>
+            </div>
+
         @else
             <!-- Empty State -->
             <div class="flex-1 flex flex-col items-center justify-center text-slate-400 p-6">

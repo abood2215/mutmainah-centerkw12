@@ -77,9 +77,25 @@ class Inbox extends Component
     {
         $this->activeConversationId = $id;
 
-        // خزّن بيانات المحادثة مباشرة كـ array
+        // دائماً أعد التحميل عشان نضمن البيانات موجودة
+        $this->loadConversations();
+
         $this->activeConvData = collect($this->conversations)
             ->first(fn($c) => $c['id'] == $id);
+
+        // إذا ما لقيناها في الـ source الحالي، ابنِ بيانات بسيطة
+        if (!$this->activeConvData) {
+            $this->activeConvData = [
+                'id'              => $id,
+                'status'          => 'open',
+                'last_message_at' => null,
+                'channel'         => 'whatsapp',
+                'client_name'     => 'محادثة #' . $id,
+                'client_phone'    => '',
+                'unread'          => 0,
+                'conv_source'     => $this->source,
+            ];
+        }
 
         $this->loadMessages();
     }
