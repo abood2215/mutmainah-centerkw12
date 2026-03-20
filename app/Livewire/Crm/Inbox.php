@@ -24,6 +24,18 @@ class Inbox extends Component
     public function mount()
     {
         $this->loadConversations();
+
+        // افتح محادثة العميل تلقائياً لما يجي من ملف العميل
+        if ($phone = request('phone')) {
+            $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+            foreach ($this->conversations as $conv) {
+                $convPhone = preg_replace('/[^0-9]/', '', $conv['client_phone'] ?? '');
+                if ($convPhone && str_ends_with($cleanPhone, $convPhone) || str_ends_with($convPhone, $cleanPhone)) {
+                    $this->selectConversation($conv['id']);
+                    break;
+                }
+            }
+        }
     }
 
     public function loadConversations()
