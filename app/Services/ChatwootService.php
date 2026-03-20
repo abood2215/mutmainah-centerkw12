@@ -147,7 +147,7 @@ class ChatwootService
     // Helpers
     // ────────────────────────────────────────────────
 
-    /** إرسال رسالة لرقم هاتف (ينشئ contact + conversation تلقائياً) */
+    /** إرسال رسالة لرقم هاتف — يستخدم المحادثة الموجودة إن وجدت */
     public function sendToPhone(string $name, string $phone, string $message): bool
     {
         // 1. ابحث عن contact
@@ -162,15 +162,33 @@ class ChatwootService
         $contactId = $contact['id'] ?? null;
         if (!$contactId) return false;
 
-        // 3. أنشئ محادثة
-        $conv = $this->createConversation($contactId);
-        if (!$conv) return false;
+        // 3. ابحث عن محادثة موجودة (مفتوحة أو pending) بدل إنشاء جديدة
+        $convId = null;
+        $existingConvs = $this->getContactConversations($contactId);
+        if (!empty($existingConvs)) {
+            // خذ أحدث محادثة مفتوحة
+            $open = collect($existingConvs)
+                ->filter(fn($c) => in_array($c['status'] ?? '', ['open', 'pending']))
+                ->sortByDesc('last_activity_at')
+                ->first();
+            // إذا ما في مفتوحة، خذ أي محادثة
+            if (!$open) {
+                $open = collect($existingConvs)->sortByDesc('last_activity_at')->first();
+            }
+            $convId = $open['id'] ?? null;
+        }
 
-        $convId = $conv['id'] ?? null;
+        // 4. أنشئ محادثة جديدة فقط إذا ما في موجودة
+        if (!$convId) {
+            $conv = $this->createConversation($contactId);
+            if (!$conv) return false;
+            $convId = $conv['id'] ?? null;
+        }
+
         if (!$convId) return false;
 
-        // 4. أرسل الرسالة
-        return $this->sendMessage($convId, $message);
+        // 5. أرسل الرسالة
+        return $this->sendMessage((int) $convId, $message);
     }
 
     /** تحقق من الاتصال */
