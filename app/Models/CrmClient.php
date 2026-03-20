@@ -12,8 +12,13 @@ class CrmClient extends Model
     use HasFactory, SoftDeletes, CrmHelpers;
 
     protected $fillable = [
-        'name', 'phone', 'email', 'source', 'stage', 'priority', 
+        'name', 'phone', 'email', 'source', 'stage', 'priority',
         'assigned_to', 'notes', 'chatwoot_contact_id', 'deal_value'
+    ];
+
+    protected $casts = [
+        'phone' => 'encrypted',
+        'email' => 'encrypted',
     ];
 
     /**

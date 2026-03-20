@@ -29,10 +29,7 @@ class Pipeline extends Component
         foreach ($stages as $stage) {
             $this->clientsByStage[$stage] = CrmClient::forCurrentUser()
                 ->where('stage', $stage)
-                ->when($this->search, function ($q) {
-                    $q->where('name', 'like', "%{$this->search}%")
-                      ->orWhere('phone', 'like', "%{$this->search}%");
-                })
+                ->when($this->search, fn($q) => $q->where('name', 'like', "%{$this->search}%"))
                 ->orderBy('created_at', 'desc')
                 ->get();
         }

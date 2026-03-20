@@ -38,12 +38,45 @@
     </style>
 </head>
 <body>
-    <div class="flex min-h-screen" dir="rtl">
-        <!-- Fixed Sidebar (Right in RTL) -->
+    <div class="flex min-h-screen" dir="rtl" x-data="{ sidebarOpen: false }">
+
+        <!-- Mobile Overlay -->
+        <div x-show="sidebarOpen"
+             x-on:click="sidebarOpen = false"
+             x-transition:enter="transition-opacity duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black/50 z-30 md:hidden"
+             style="display:none"></div>
+
+        <!-- Sidebar -->
         <x-crm-sidebar />
 
         <!-- Main Content -->
-        <main class="flex-1 mr-64 min-h-screen overflow-x-hidden">
+        <main class="flex-1 md:mr-64 min-h-screen overflow-x-hidden">
+
+            <!-- Mobile Top Bar -->
+            <div class="md:hidden flex items-center justify-between bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-20 shadow-sm">
+                <button x-on:click="sidebarOpen = true"
+                        class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-black text-slate-900">Loving Homes CRM</span>
+                </div>
+                <div class="w-10"></div>
+            </div>
+
             {{ $slot }}
         </main>
     </div>

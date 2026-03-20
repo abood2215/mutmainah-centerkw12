@@ -10,7 +10,18 @@
     ];
 @endphp
 
-<aside class="fixed top-0 right-0 h-full w-64 bg-white border-l border-slate-200 shadow-xl z-40 flex flex-col">
+<aside class="fixed top-0 right-0 h-full w-64 bg-white border-l border-slate-200 shadow-xl z-40 flex flex-col
+              transform transition-transform duration-300 ease-in-out
+              translate-x-full md:translate-x-0"
+       :class="sidebarOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'">
+
+    <!-- Close button (mobile only) -->
+    <button x-on:click="sidebarOpen = false"
+            class="md:hidden absolute top-4 left-4 w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
 
     <!-- Logo / Brand -->
     <div class="px-6 py-7 border-b border-slate-100">
@@ -32,10 +43,9 @@
         <div class="text-[9px] font-black text-slate-400 uppercase tracking-[4px] px-3 mb-3">القائمة الرئيسية</div>
 
         @foreach($links as $link)
-            @php
-                $isActive = str_contains($currentPath, $link['id']);
-            @endphp
+            @php $isActive = str_contains($currentPath, $link['id']); @endphp
             <a href="{{ $link['route'] }}"
+               x-on:click="sidebarOpen = false"
                class="sidebar-link flex items-center gap-3 px-3 py-3 rounded-xl {{ $isActive ? 'active' : 'text-slate-600' }}">
                 <svg class="w-5 h-5 {{ $isActive ? 'stroke-white' : 'stroke-slate-500' }} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $link['icon'] }}"/>
