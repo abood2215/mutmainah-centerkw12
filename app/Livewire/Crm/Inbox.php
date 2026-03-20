@@ -12,6 +12,7 @@ use App\Models\CrmClient;
 class Inbox extends Component
 {
     public $activeConversationId = null;
+    public $activeConvData  = null; // array
     public $conversations   = [];
     public $messages        = [];
     public $newMessage      = '';
@@ -75,6 +76,11 @@ class Inbox extends Component
     public function selectConversation($id)
     {
         $this->activeConversationId = $id;
+
+        // خزّن بيانات المحادثة مباشرة كـ array
+        $this->activeConvData = collect($this->conversations)
+            ->first(fn($c) => $c['id'] == $id);
+
         $this->loadMessages();
     }
 
@@ -168,20 +174,38 @@ class Inbox extends Component
         }
 
         $this->loadConversations();
+
+        // حدّث activeConvData بعد تغيير الحالة
+        if ($this->activeConversationId) {
+            $this->activeConvData = collect($this->conversations)
+                ->first(fn($c) => $c['id'] == $this->activeConversationId);
+        }
+    }
+
+    public function refreshAll()
+    {
+        $this->loadConversations();
+
+        // بعد تحديث المحادثات، حدّث بيانات المحادثة النشطة
+        if ($this->activeConversationId) {
+            $found = collect($this->conversations)
+                ->first(fn($c) => $c['id'] == $this->activeConversationId);
+            if ($found) {
+                $this->activeConvData = $found;
+            }
+            $this->loadMessages();
+        }
     }
 
     #[On('refresh-inbox')]
     public function refresh()
     {
-        $this->loadConversations();
-        $this->loadMessages();
+        $this->refreshAll();
     }
 
     public function render()
     {
-        $allConversations = collect($this->conversations);
-
-        $filteredConversations = $allConversations
+        $filteredConversations = collect($this->conversations)
             ->when($this->filterStatus, fn($c) => $c->filter(fn($conv) => $conv['status'] === $this->filterStatus))
             ->when($this->searchQuery, function ($c) {
                 $q = mb_strtolower($this->searchQuery);
@@ -192,14 +216,10 @@ class Inbox extends Component
             })
             ->values()->all();
 
-        $activeConvDataRaw = $this->activeConversationId
-            ? $allConversations->first(fn($c) => $c['id'] == $this->activeConversationId)
-            : null;
-
-        // تحويل إلى object للـ view
-        $activeConvData = $activeConvDataRaw ? (object) array_merge($activeConvDataRaw, [
-            'last_message_at' => $activeConvDataRaw['last_message_at']
-                ? \Carbon\Carbon::parse($activeConvDataRaw['last_message_at'])
+        // تحويل activeConvData من array إلى object للـ view
+        $activeConvData = $this->activeConvData ? (object) array_merge($this->activeConvData, [
+            'last_message_at' => isset($this->activeConvData['last_message_at']) && $this->activeConvData['last_message_at']
+                ? \Carbon\Carbon::parse($this->activeConvData['last_message_at'])
                 : null,
         ]) : null;
 

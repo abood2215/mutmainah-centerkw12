@@ -1,4 +1,5 @@
 <div dir="rtl" class="flex bg-[#F0F2FF] overflow-hidden" style="height: calc(100vh - 53px);"
+     wire:poll.3000ms="refreshAll"
      x-data="{ showChat: {{ $activeConversationId ? 'true' : 'false' }} }"
      x-on:livewire:updated.window="if ($wire.activeConversationId) showChat = true">
 
@@ -48,7 +49,7 @@
         </div>
 
         <!-- List -->
-        <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1" wire:poll.4000ms="loadConversations">
+        <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1">
             @forelse($filteredConversations as $conv)
                 <div wire:click="selectConversation({{ $conv['id'] }})"
                      x-on:click="showChat = true"
@@ -153,7 +154,6 @@
 
             <!-- Messages -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-[#F0F2FF]"
-                 wire:poll.4000ms="loadMessages"
                  x-data
                  x-init="$el.scrollTop = $el.scrollHeight"
                  x-on:livewire:updated.window="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
