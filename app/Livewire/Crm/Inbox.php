@@ -16,6 +16,8 @@ class Inbox extends Component
     public $messages        = [];
     public $newMessage      = '';
     public $filterChannel   = '';
+    public $filterStatus    = '';
+    public $searchQuery     = '';
     public $activeConvData  = null;
     public $source          = 'local'; // local | chatwoot
 
@@ -182,6 +184,20 @@ class Inbox extends Component
     {
         $this->loadConversations();
         $this->loadMessages();
+    }
+
+    public function getFilteredConversationsProperty(): array
+    {
+        return collect($this->conversations)
+            ->when($this->filterStatus, fn($c) => $c->filter(fn($conv) => $conv->status === $this->filterStatus))
+            ->when($this->searchQuery, function ($c) {
+                $q = mb_strtolower($this->searchQuery);
+                return $c->filter(fn($conv) =>
+                    str_contains(mb_strtolower($conv->client_name), $q) ||
+                    str_contains($conv->client_phone, $q)
+                );
+            })
+            ->values()->all();
     }
 
     public function render()

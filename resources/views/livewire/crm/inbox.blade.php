@@ -1,6 +1,6 @@
 <div dir="rtl" class="flex bg-[#F0F2FF] overflow-hidden" style="height: calc(100vh - 53px);"
-     x-data="{ showChat: {{ $activeConversationId ? 'true' : 'false' }} }"
-     x-on:livewire:update="if ({{ $activeConversationId ?: 0 }}) showChat = true">
+     x-data="{ showChat: {{ $activeConversationId ? 'true' : 'false' }}, loading: false }"
+     x-on:livewire:updated.window="if ($wire.activeConversationId) showChat = true">
 
     <!-- Conversations List -->
     <div class="bg-white border-l border-slate-200 flex flex-col shadow-sm flex-shrink-0
@@ -15,23 +15,43 @@
                     {{ count($conversations) }}
                 </span>
             </div>
-            <div class="flex gap-2 mt-3">
-                <button wire:click="loadConversations"
-                    class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-600 hover:text-white transition-all">
-                    تحديث
+
+            <!-- Search -->
+            <div class="mt-3 relative">
+                <input type="text" wire:model.live="searchQuery"
+                    placeholder="بحث باسم أو رقم..."
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 placeholder:text-slate-400 pr-8">
+                <svg class="w-3.5 h-3.5 text-slate-400 absolute top-2.5 right-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="flex gap-1.5 mt-3">
+                <button wire:click="$set('filterStatus', '')"
+                    class="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition-all {{ $filterStatus === '' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}">
+                    الكل
                 </button>
-                <span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 flex items-center gap-1">
+                <button wire:click="$set('filterStatus', 'open')"
+                    class="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition-all {{ $filterStatus === 'open' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}">
+                    مفتوح
+                </button>
+                <button wire:click="$set('filterStatus', 'resolved')"
+                    class="text-[10px] font-black px-2.5 py-1.5 rounded-lg transition-all {{ $filterStatus === 'resolved' ? 'bg-slate-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}">
+                    مغلق
+                </button>
+                <span class="mr-auto text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 flex items-center gap-1">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
-                    Chatwoot Live
+                    Live
                 </span>
             </div>
         </div>
 
         <!-- List -->
-        <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1" wire:poll.8000ms="loadConversations">
-            @forelse($conversations as $conv)
+        <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1" wire:poll.4000ms="loadConversations">
+            @forelse($filteredConversations as $conv)
                 <div wire:click="selectConversation({{ $conv->id }})"
-                     x-on:click="showChat = true"
+                     x-on:click="showChat = true; loading = true"
                      class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border-2
                         {{ $activeConversationId == $conv->id
                             ? 'bg-indigo-50 border-indigo-200'
@@ -74,7 +94,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                     </svg>
                     <p class="text-xs font-bold">لا توجد محادثات</p>
-                    <p class="text-[10px] text-slate-300 mt-1">تأكد من إعدادات Chatwoot</p>
                 </div>
             @endforelse
         </div>
@@ -134,42 +153,53 @@
 
             <!-- Messages -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-[#F0F2FF]"
-                 wire:poll.8000ms="loadMessages"
-                 x-data x-init="$el.scrollTop = $el.scrollHeight"
-                 x-on:livewire:update="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
+                 wire:poll.4000ms="loadMessages"
+                 x-data
+                 x-init="$el.scrollTop = $el.scrollHeight"
+                 x-on:livewire:updated.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight; loading = false })">
 
-                @forelse($messages as $msg)
-                    <div class="flex {{ $msg->direction === 'out' ? 'justify-start' : 'justify-end' }}">
-                        <div class="max-w-[80%] sm:max-w-[70%]">
-                            <div class="px-4 py-3 rounded-2xl text-sm font-semibold leading-relaxed shadow-sm
-                                {{ $msg->direction === 'out'
-                                    ? 'bg-indigo-600 text-white rounded-tr-sm'
-                                    : 'bg-white text-slate-800 border border-slate-200 rounded-tl-sm' }}">
-                                {{ $msg->content }}
+                <!-- Loading Spinner -->
+                <div x-show="loading" class="flex justify-center py-8">
+                    <div class="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+
+                <template x-if="!loading">
+                    <div class="space-y-4">
+                        @forelse($messages as $msg)
+                            <div class="flex {{ $msg->direction === 'out' ? 'justify-start' : 'justify-end' }}">
+                                <div class="max-w-[80%] sm:max-w-[70%]">
+                                    <div class="px-4 py-3 rounded-2xl text-sm font-semibold leading-relaxed shadow-sm
+                                        {{ $msg->direction === 'out'
+                                            ? 'bg-indigo-600 text-white rounded-tr-sm'
+                                            : 'bg-white text-slate-800 border border-slate-200 rounded-tl-sm' }}">
+                                        {{ $msg->content }}
+                                    </div>
+                                    <div class="text-[10px] mt-1 font-bold text-slate-400 flex items-center gap-1
+                                        {{ $msg->direction === 'out' ? 'justify-end' : 'justify-start' }}">
+                                        @if($msg->direction === 'in')
+                                            <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
+                                            </svg>
+                                        @endif
+                                        {{ $msg->sent_at ? $msg->sent_at->format('H:i') : '' }}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-[10px] mt-1 font-bold text-slate-400 flex items-center gap-1
-                                {{ $msg->direction === 'out' ? 'justify-end' : 'justify-start' }}">
-                                @if($msg->direction === 'in')
-                                    <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
-                                    </svg>
-                                @endif
-                                {{ $msg->sent_at ? $msg->sent_at->format('H:i') : '' }}
+                        @empty
+                            <div class="flex flex-col items-center justify-center h-32 text-slate-400">
+                                <p class="text-sm font-bold">لا توجد رسائل</p>
                             </div>
-                        </div>
+                        @endforelse
                     </div>
-                @empty
-                    <div class="flex flex-col items-center justify-center h-32 text-slate-400">
-                        <p class="text-sm font-bold">لا توجد رسائل</p>
-                    </div>
-                @endforelse
+                </template>
             </div>
 
             <!-- Input -->
             <div class="bg-white border-t border-slate-200 p-3">
                 <form wire:submit.prevent="sendMessage" class="flex items-center gap-2">
-                    <input type="text" wire:model.defer="newMessage"
+                    <input type="text" wire:model="newMessage"
                         placeholder="اكتب رسالة..."
+                        x-on:keydown.enter.prevent="$wire.sendMessage()"
                         class="flex-1 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 placeholder:text-slate-400">
                     <button type="submit"
                         class="w-11 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25 active:scale-95 transition-all flex-shrink-0">
