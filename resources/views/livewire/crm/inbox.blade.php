@@ -1,5 +1,5 @@
 <div dir="rtl" class="flex bg-[#F0F2FF] overflow-hidden" style="height: calc(100vh - 53px);"
-     x-data="{ showChat: {{ $activeConversationId ? 'true' : 'false' }}, loading: false }"
+     x-data="{ showChat: {{ $activeConversationId ? 'true' : 'false' }} }"
      x-on:livewire:updated.window="if ($wire.activeConversationId) showChat = true">
 
     <!-- Conversations List -->
@@ -51,7 +51,7 @@
         <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-1" wire:poll.4000ms="loadConversations">
             @forelse($filteredConversations as $conv)
                 <div wire:click="selectConversation({{ $conv->id }})"
-                     x-on:click="showChat = true; loading = true"
+                     x-on:click="showChat = true"
                      class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border-2
                         {{ $activeConversationId == $conv->id
                             ? 'bg-indigo-50 border-indigo-200'
@@ -156,42 +156,33 @@
                  wire:poll.4000ms="loadMessages"
                  x-data
                  x-init="$el.scrollTop = $el.scrollHeight"
-                 x-on:livewire:updated.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight; loading = false })">
+                 x-on:livewire:updated.window="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
 
-                <!-- Loading Spinner -->
-                <div x-show="loading" class="flex justify-center py-8">
-                    <div class="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-
-                <template x-if="!loading">
-                    <div class="space-y-4">
-                        @forelse($messages as $msg)
-                            <div class="flex {{ $msg->direction === 'out' ? 'justify-start' : 'justify-end' }}">
-                                <div class="max-w-[80%] sm:max-w-[70%]">
-                                    <div class="px-4 py-3 rounded-2xl text-sm font-semibold leading-relaxed shadow-sm
-                                        {{ $msg->direction === 'out'
-                                            ? 'bg-indigo-600 text-white rounded-tr-sm'
-                                            : 'bg-white text-slate-800 border border-slate-200 rounded-tl-sm' }}">
-                                        {{ $msg->content }}
-                                    </div>
-                                    <div class="text-[10px] mt-1 font-bold text-slate-400 flex items-center gap-1
-                                        {{ $msg->direction === 'out' ? 'justify-end' : 'justify-start' }}">
-                                        @if($msg->direction === 'in')
-                                            <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
-                                            </svg>
-                                        @endif
-                                        {{ $msg->sent_at ? $msg->sent_at->format('H:i') : '' }}
-                                    </div>
-                                </div>
+                @forelse($messages as $msg)
+                    <div class="flex {{ $msg->direction === 'out' ? 'justify-start' : 'justify-end' }}">
+                        <div class="max-w-[80%] sm:max-w-[70%]">
+                            <div class="px-4 py-3 rounded-2xl text-sm font-semibold leading-relaxed shadow-sm
+                                {{ $msg->direction === 'out'
+                                    ? 'bg-indigo-600 text-white rounded-tr-sm'
+                                    : 'bg-white text-slate-800 border border-slate-200 rounded-tl-sm' }}">
+                                {{ $msg->content }}
                             </div>
-                        @empty
-                            <div class="flex flex-col items-center justify-center h-32 text-slate-400">
-                                <p class="text-sm font-bold">لا توجد رسائل</p>
+                            <div class="text-[10px] mt-1 font-bold text-slate-400 flex items-center gap-1
+                                {{ $msg->direction === 'out' ? 'justify-end' : 'justify-start' }}">
+                                @if($msg->direction === 'in')
+                                    <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12.012 2.25c-5.378 0-9.755 4.377-9.755 9.755 0 1.719.447 3.332 1.233 4.737l-1.31 4.793 4.907-1.288a9.704 9.704 0 004.66.19c1.925 0 3.73-.553 5.257-1.51A9.755 9.755 0 0021.767 12c0-5.378-4.378-9.75-9.755-9.75z"/>
+                                    </svg>
+                                @endif
+                                {{ $msg->sent_at ? $msg->sent_at->format('H:i') : '' }}
                             </div>
-                        @endforelse
+                        </div>
                     </div>
-                </template>
+                @empty
+                    <div class="flex flex-col items-center justify-center h-32 text-slate-400">
+                        <p class="text-sm font-bold">لا توجد رسائل</p>
+                    </div>
+                @endforelse
             </div>
 
             <!-- Input -->
