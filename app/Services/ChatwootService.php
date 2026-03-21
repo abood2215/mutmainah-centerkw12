@@ -61,7 +61,7 @@ class ChatwootService
 
         if (!$res->successful()) return [];
 
-        return array_reverse($res->json('payload', []));
+        return $res->json('payload', []);
     }
 
     /** إرسال رسالة عبر Chatwoot → WhatsApp */
@@ -91,7 +91,7 @@ class ChatwootService
     public function toggleStatus(int $conversationId, string $status): bool
     {
         $res = $this->http()->patch(
-            "/api/v1/accounts/{$this->accountId}/conversations/{$conversationId}/update",
+            "/api/v1/accounts/{$this->accountId}/conversations/{$conversationId}",
             ['status' => $status]
         );
 
@@ -120,13 +120,13 @@ class ChatwootService
     }
 
     /**
-     * تعيين وكيل لمحادثة
+     * تعيين وكيل لمحادثة — إذا $agentId = 0 يُلغي التعيين
      */
     public function assignConversation(int $convId, int $agentId): bool
     {
         $res = $this->http()->post(
             "/api/v1/accounts/{$this->accountId}/conversations/{$convId}/assignments",
-            ['assignee_id' => $agentId]
+            ['assignee_id' => $agentId === 0 ? null : $agentId]
         );
 
         return $res->successful();

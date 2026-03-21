@@ -303,7 +303,26 @@
                                     @if($msg['content'])
                                         <p class="whitespace-pre-wrap break-words">{{ $msg['content'] }}</p>
                                     @endif
-                                    @include('livewire.crm.inbox-attachments', ['attachments' => $msg['attachments'] ?? []])
+                                    @foreach($msg['attachments'] ?? [] as $att)
+                                        @php $fileType = $att['file_type'] ?? ''; @endphp
+                                        @if($fileType === 'image')
+                                            <a href="{{ $att['data_url'] ?? $att['file_url'] ?? '#' }}" target="_blank" class="block mt-1">
+                                                <img src="{{ $att['thumb_url'] ?? $att['data_url'] ?? $att['file_url'] ?? '' }}" class="rounded-xl max-w-full max-h-48 object-cover" alt="صورة">
+                                            </a>
+                                        @elseif($fileType === 'audio')
+                                            <audio controls class="mt-1 w-full max-w-xs" style="height:36px;">
+                                                <source src="{{ $att['data_url'] ?? $att['file_url'] ?? '' }}">
+                                            </audio>
+                                        @elseif(in_array($fileType, ['file', 'document']))
+                                            <a href="{{ $att['data_url'] ?? $att['file_url'] ?? '#' }}" target="_blank"
+                                               class="mt-1 flex items-center gap-2 bg-white/60 rounded-xl p-2 border border-amber-200 hover:bg-white/80 transition-all">
+                                                <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                </svg>
+                                                <span class="text-xs font-semibold text-slate-700 truncate">{{ $att['file_name'] ?? 'ملف' }}</span>
+                                            </a>
+                                        @endif
+                                    @endforeach
                                     <div class="flex items-center gap-1 mt-0.5 justify-start">
                                         <span class="text-[10px] text-amber-600">{{ $msgDate ? $msgDate->format('H:i') : '' }}</span>
                                     </div>
@@ -487,7 +506,7 @@
                         <div class="max-h-40 overflow-y-auto space-y-1 no-scrollbar">
                             @forelse($cannedResponses as $canned)
                                 <button type="button"
-                                    wire:click="selectCannedResponse('{{ addslashes($canned['content']) }}')"
+                                    wire:click="selectCannedResponse({{ $canned['id'] }})"
                                     class="w-full text-right px-2.5 py-2 rounded-lg hover:bg-indigo-50 transition-all group">
                                     <p class="text-xs font-black text-slate-700 group-hover:text-indigo-700 truncate">{{ $canned['title'] }}</p>
                                     <p class="text-[10px] text-slate-400 truncate mt-0.5">{{ $canned['content'] }}</p>
@@ -522,7 +541,6 @@
                         {{ $isPrivateNote ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200' }}">
                         <input type="text" wire:model="newMessage"
                             placeholder="{{ $isPrivateNote ? 'اكتب ملاحظة خاصة...' : 'اكتب رسالة...' }}"
-                            x-on:keydown.enter.prevent="$wire.sendMessage()"
                             class="flex-1 bg-transparent text-slate-800 text-sm font-medium focus:outline-none placeholder:text-slate-400">
                     </div>
 
@@ -574,7 +592,6 @@
                     <div class="flex-1 bg-white rounded-2xl border border-slate-200 px-4 py-2.5 flex items-center shadow-sm">
                         <input type="text" wire:model="newMessage"
                             placeholder="اكتب رسالتك الأولى..."
-                            x-on:keydown.enter.prevent="$wire.sendMessage()"
                             class="flex-1 bg-transparent text-slate-800 text-sm font-medium focus:outline-none placeholder:text-slate-400">
                     </div>
                     <button type="submit"

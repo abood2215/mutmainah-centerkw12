@@ -174,8 +174,6 @@ class Inbox extends Component
     {
         $this->activeConversationId = $id;
 
-        $this->loadConversations();
-
         $this->activeConvData = collect($this->conversations)
             ->first(fn($c) => $c['id'] == $id);
 
@@ -418,11 +416,14 @@ class Inbox extends Component
     }
 
     /**
-     * Fill newMessage with selected canned response content.
+     * Fill newMessage with selected canned response content (by ID — safe against special chars).
      */
-    public function selectCannedResponse(string $content): void
+    public function selectCannedResponse(int $id): void
     {
-        $this->newMessage   = $content;
+        $response = CannedResponse::find($id);
+        if ($response) {
+            $this->newMessage = $response->content;
+        }
         $this->showCanned   = false;
         $this->cannedSearch = '';
     }
