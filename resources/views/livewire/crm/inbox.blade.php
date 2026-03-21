@@ -153,9 +153,9 @@
 
             <!-- Messages -->
             <div class="flex-1 overflow-y-auto p-4 no-scrollbar bg-[#ECE5DD]"
-                 x-data="{ lastCount: {{ count($messages) }} }"
-                 x-init="$el.scrollTop = $el.scrollHeight"
-                 x-on:livewire:updated.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight })">
+                 x-data="{ go() { this.$nextTick(() => { let e = document.getElementById('chat-end'); if(e) e.scrollIntoView(); }); } }"
+                 x-init="go()"
+                 x-on:livewire:updated.window="go()">
 
                 @php $prevDate = null; @endphp
 
@@ -312,6 +312,7 @@
                         <p class="text-sm font-bold">لا توجد رسائل</p>
                     </div>
                 @endforelse
+                <div id="chat-end"></div>
             </div>
 
             <!-- Input Area -->

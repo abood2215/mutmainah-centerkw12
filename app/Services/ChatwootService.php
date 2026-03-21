@@ -79,6 +79,14 @@ class ChatwootService
         return $res->successful();
     }
 
+    /** تعليم المحادثة كمقروءة */
+    public function markAsRead(int $conversationId): void
+    {
+        $this->http()->post(
+            "/api/v1/accounts/{$this->accountId}/conversations/{$conversationId}/update_last_seen"
+        );
+    }
+
     /** تغيير حالة المحادثة (open / resolved) */
     public function toggleStatus(int $conversationId, string $status): bool
     {

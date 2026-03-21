@@ -162,6 +162,19 @@ class Inbox extends Component
         }
 
         $this->loadMessages();
+
+        // علّم المحادثة كمقروءة
+        if ($this->source === 'chatwoot') {
+            try {
+                (new ChatwootService())->markAsRead((int) $id);
+            } catch (\Exception $e) {}
+        }
+
+        // صفّر عداد الغير مقروء محلياً فوراً
+        $this->conversations = collect($this->conversations)->map(function ($c) use ($id) {
+            if ($c['id'] == $id) $c['unread'] = 0;
+            return $c;
+        })->values()->all();
     }
 
     public function loadMessages()
