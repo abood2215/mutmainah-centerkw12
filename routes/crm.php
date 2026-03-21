@@ -8,10 +8,14 @@ use App\Livewire\Crm\Tasks;
 use App\Livewire\Crm\Campaigns;
 use App\Livewire\Crm\Inbox;
 use App\Livewire\Crm\Settings;
+use App\Livewire\Crm\Team;
+use App\Livewire\Crm\CannedResponses;
+use App\Livewire\Crm\BusinessHours;
+use App\Http\Controllers\ChatwootWebhookController;
 
 /*
 |--------------------------------------------------------------------------
-| CRM Routes (Phase 1-4 Complete)
+| CRM Routes
 |--------------------------------------------------------------------------
 */
 
@@ -23,4 +27,19 @@ Route::middleware(['web', 'auth'])->prefix('crm')->group(function () {
     Route::get('/campaigns', Campaigns::class)->name('crm.campaigns');
     Route::get('/inbox', Inbox::class)->name('crm.inbox');
     Route::get('/settings', Settings::class)->name('crm.settings');
+
+    // Phase 5: Team & Tools
+    Route::get('/team', Team::class)->name('crm.team');
+    Route::get('/canned-responses', CannedResponses::class)->name('crm.canned-responses');
+    Route::get('/settings/business-hours', BusinessHours::class)->name('crm.business-hours');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Webhooks (no auth required)
+|--------------------------------------------------------------------------
+*/
+
+// Chatwoot incoming webhook (message_created events)
+Route::post('/webhooks/chatwoot', [ChatwootWebhookController::class, 'handle'])
+    ->name('webhooks.chatwoot');

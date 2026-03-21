@@ -99,6 +99,40 @@ class ChatwootService
     }
 
     // ────────────────────────────────────────────────
+    // Agents
+    // ────────────────────────────────────────────────
+
+    /**
+     * جلب قائمة الوكلاء (Agents) من Chatwoot
+     * يرجع مصفوفة من: [ id, name, availability_status ]
+     */
+    public function getAgents(): array
+    {
+        $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/agents");
+
+        if (!$res->successful()) return [];
+
+        return collect($res->json() ?? [])->map(fn($agent) => [
+            'id'                  => $agent['id'] ?? 0,
+            'name'                => $agent['name'] ?? '',
+            'availability_status' => $agent['availability_status'] ?? 'offline',
+        ])->values()->all();
+    }
+
+    /**
+     * تعيين وكيل لمحادثة
+     */
+    public function assignConversation(int $convId, int $agentId): bool
+    {
+        $res = $this->http()->post(
+            "/api/v1/accounts/{$this->accountId}/conversations/{$convId}/assignments",
+            ['assignee_id' => $agentId]
+        );
+
+        return $res->successful();
+    }
+
+    // ────────────────────────────────────────────────
     // Contacts
     // ────────────────────────────────────────────────
 

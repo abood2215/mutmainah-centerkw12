@@ -12,9 +12,16 @@
         <div class="px-4 py-4 border-b border-slate-100">
             <div class="flex items-center justify-between">
                 <h2 class="text-base font-black text-slate-900">صندوق الرسائل</h2>
-                <span class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1 rounded-full shadow-sm">
-                    {{ count($conversations) }}
-                </span>
+                <div class="flex items-center gap-1.5">
+                    @if($unreadTotal > 0)
+                        <span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                            {{ $unreadTotal }} غير مقروء
+                        </span>
+                    @endif
+                    <span class="bg-indigo-600 text-white text-xs font-black px-2.5 py-1 rounded-full shadow-sm">
+                        {{ count($conversations) }}
+                    </span>
+                </div>
             </div>
 
             <!-- Search -->
@@ -87,6 +94,15 @@
                             </span>
                             <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 {{ $conv['status'] === 'open' ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
                         </div>
+                        {{-- Assigned agent name --}}
+                        @if(!empty($conv['assigned_agent']))
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <svg class="w-2.5 h-2.5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                <span class="text-[9px] text-indigo-500 font-bold truncate">{{ $conv['assigned_agent'] }}</span>
+                            </div>
+                        @endif
                     </div>
                 </div>
             @empty
@@ -106,48 +122,108 @@
 
         @if($activeConversationId && $activeConvData)
             <!-- Chat Header -->
-            <div class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-3">
-                    <button x-on:click="showChat = false" class="md:hidden w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-slate-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </button>
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white text-sm font-black shadow-sm">
-                        {{ mb_substr($activeConvData['client_name'] ?? '', 0, 1) }}
-                    </div>
-                    <div>
-                        <h2 class="text-sm font-black text-slate-900">{{ $activeConvData['client_name'] ?? '' }}</h2>
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full {{ ($activeConvData['status'] ?? '') === 'open' ? 'bg-emerald-500' : 'bg-slate-300' }}"></div>
-                            <span class="text-xs text-slate-500 font-semibold" dir="ltr">{{ $activeConvData['client_phone'] ?? '' }}</span>
+            <div class="bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <button x-on:click="showChat = false" class="md:hidden w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-slate-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white text-sm font-black shadow-sm">
+                            {{ mb_substr($activeConvData['client_name'] ?? '', 0, 1) }}
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-black text-slate-900">{{ $activeConvData['client_name'] ?? '' }}</h2>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full {{ ($activeConvData['status'] ?? '') === 'open' ? 'bg-emerald-500' : 'bg-slate-300' }}"></div>
+                                <span class="text-xs text-slate-500 font-semibold" dir="ltr">{{ $activeConvData['client_phone'] ?? '' }}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="flex items-center gap-2">
-                    @php
-                        $rawPhone = preg_replace('/[^0-9]/', '', $activeConvData['client_phone'] ?? '');
-                        $crmClient = null;
-                        if ($rawPhone) {
-                            $crmClient = \App\Models\CrmClient::all()
-                                ->first(fn($c) => preg_replace('/[^0-9]/', '', $c->phone ?? '') === $rawPhone);
-                        }
-                    @endphp
-                    @if($crmClient)
-                        <a href="{{ route('crm.client-show', $crmClient->id) }}"
-                           class="text-xs font-black px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all hidden sm:flex items-center gap-1">
-                            ملف العميل ←
-                        </a>
-                    @endif
+                    <div class="flex items-center gap-2">
 
-                    <button wire:click="toggleStatus({{ $activeConversationId }})"
-                        class="text-xs font-black px-3 py-1.5 rounded-xl transition-all border
-                            {{ ($activeConvData['status'] ?? '') === 'open'
-                                ? 'bg-white border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600'
-                                : 'bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600' }}">
-                        {{ ($activeConvData['status'] ?? '') === 'open' ? 'إغلاق' : 'فتح' }}
-                    </button>
+                        {{-- Assignment Dropdown --}}
+                        <div class="relative" x-data="{ open: false }">
+                            <button type="button"
+                                x-on:click="open = !open"
+                                class="flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                <span class="hidden sm:inline max-w-[100px] truncate">
+                                    {{ $assignedAgentName ?: 'غير معيّن' }}
+                                </span>
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+
+                            <div x-show="open"
+                                 x-on:click.outside="open = false"
+                                 x-transition:enter="transition ease-out duration-150"
+                                 x-transition:enter-start="opacity-0 scale-95"
+                                 x-transition:enter-end="opacity-100 scale-100"
+                                 class="absolute left-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 w-52 py-1.5 overflow-hidden"
+                                 style="display: none;">
+                                <div class="px-3 py-2 border-b border-slate-100">
+                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">تعيين وكيل</p>
+                                </div>
+                                {{-- Unassign --}}
+                                <button type="button"
+                                    wire:click="assignConversation(0, '')"
+                                    x-on:click="open = false"
+                                    class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition-all">
+                                    <span class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></span>
+                                    غير معيّن
+                                </button>
+                                @foreach($agents as $agent)
+                                    @php
+                                        $agentDot = match($agent['availability_status'] ?? 'offline') {
+                                            'online'  => 'bg-emerald-500',
+                                            'busy'    => 'bg-amber-400',
+                                            default   => 'bg-slate-300',
+                                        };
+                                    @endphp
+                                    <button type="button"
+                                        wire:click="assignConversation({{ $agent['id'] }}, '{{ addslashes($agent['name']) }}')"
+                                        x-on:click="open = false"
+                                        class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-all
+                                            {{ $assignedAgentName === $agent['name'] ? 'bg-indigo-50 text-indigo-700' : '' }}">
+                                        <span class="w-2 h-2 rounded-full {{ $agentDot }} flex-shrink-0"></span>
+                                        {{ $agent['name'] }}
+                                    </button>
+                                @endforeach
+                                @if(empty($agents))
+                                    <p class="text-[10px] text-slate-400 font-semibold px-3 py-2">لا يوجد وكلاء</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        @php
+                            $rawPhone = preg_replace('/[^0-9]/', '', $activeConvData['client_phone'] ?? '');
+                            $crmClient = null;
+                            if ($rawPhone) {
+                                $crmClient = \App\Models\CrmClient::all()
+                                    ->first(fn($c) => preg_replace('/[^0-9]/', '', $c->phone ?? '') === $rawPhone);
+                            }
+                        @endphp
+                        @if($crmClient)
+                            <a href="{{ route('crm.client-show', $crmClient->id) }}"
+                               class="text-xs font-black px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all hidden sm:flex items-center gap-1">
+                                ملف العميل ←
+                            </a>
+                        @endif
+
+                        <button wire:click="toggleStatus({{ $activeConversationId }})"
+                            class="text-xs font-black px-3 py-1.5 rounded-xl transition-all border
+                                {{ ($activeConvData['status'] ?? '') === 'open'
+                                    ? 'bg-white border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600'
+                                    : 'bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600' }}">
+                            {{ ($activeConvData['status'] ?? '') === 'open' ? 'إغلاق' : 'فتح' }}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -277,22 +353,18 @@
                                         </span>
                                         @if($msg['direction'] === 'out')
                                             @if($status === 'failed')
-                                                {{-- Failed --}}
                                                 <svg class="w-3.5 h-3.5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                                                 </svg>
                                             @elseif($status === 'read')
-                                                {{-- Read - double blue --}}
                                                 <svg class="w-4 h-3.5 text-teal-500" viewBox="0 0 20 11" fill="currentColor">
                                                     <path d="M7.071 8.653a.75.75 0 0 1-.025-1.06L12.46 2.25a.75.75 0 1 1 1.085 1.036L7.096 8.678a.75.75 0 0 1-1.025-.025zM1.071 8.653a.75.75 0 0 1-.025-1.06L6.46 2.25a.75.75 0 1 1 1.085 1.036L2.096 8.678a.75.75 0 0 1-1.025-.025z"/>
                                                 </svg>
                                             @elseif($status === 'delivered')
-                                                {{-- Delivered - double grey --}}
                                                 <svg class="w-4 h-3.5 text-slate-400" viewBox="0 0 20 11" fill="currentColor">
                                                     <path d="M7.071 8.653a.75.75 0 0 1-.025-1.06L12.46 2.25a.75.75 0 1 1 1.085 1.036L7.096 8.678a.75.75 0 0 1-1.025-.025zM1.071 8.653a.75.75 0 0 1-.025-1.06L6.46 2.25a.75.75 0 1 1 1.085 1.036L2.096 8.678a.75.75 0 0 1-1.025-.025z"/>
                                                 </svg>
                                             @else
-                                                {{-- Sent - single grey --}}
                                                 <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 16 11" fill="currentColor">
                                                     <path d="M11.071.653a.75.75 0 0 1 .025 1.06l-6.5 7a.75.75 0 0 1-1.085 0l-3-3.228a.75.75 0 1 1 1.085-1.036L4.02 7.147l5.966-6.47a.75.75 0 0 1 1.086-.024z"/>
                                                 </svg>
@@ -368,11 +440,51 @@
                     </div>
                 </div>
 
+                {{-- Canned Responses Dropdown --}}
+                @if($showCanned)
+                    <div class="bg-white border-b border-slate-200 px-3 py-2"
+                         x-data="{}"
+                         x-on:click.outside="$wire.set('showCanned', false)">
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="text" wire:model.live="cannedSearch"
+                                placeholder="بحث في الردود الجاهزة..."
+                                class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/30 placeholder:text-slate-400">
+                            <button type="button" wire:click="$set('showCanned', false)"
+                                class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 text-xs flex-shrink-0">
+                                ✕
+                            </button>
+                        </div>
+                        <div class="max-h-40 overflow-y-auto space-y-1 no-scrollbar">
+                            @forelse($cannedResponses as $canned)
+                                <button type="button"
+                                    wire:click="selectCannedResponse('{{ addslashes($canned['content']) }}')"
+                                    class="w-full text-right px-2.5 py-2 rounded-lg hover:bg-indigo-50 transition-all group">
+                                    <p class="text-xs font-black text-slate-700 group-hover:text-indigo-700 truncate">{{ $canned['title'] }}</p>
+                                    <p class="text-[10px] text-slate-400 truncate mt-0.5">{{ $canned['content'] }}</p>
+                                </button>
+                            @empty
+                                <p class="text-xs text-slate-400 font-semibold text-center py-3">
+                                    {{ $cannedSearch ? 'لا توجد نتائج' : 'لا توجد ردود جاهزة' }}
+                                </p>
+                            @endforelse
+                        </div>
+                    </div>
+                @endif
+
                 <form wire:submit.prevent="sendMessage" class="flex items-end gap-2 px-3 py-2">
                     {{-- Emoji Button --}}
                     <button type="button" x-on:click="showEmoji = !showEmoji"
                         class="w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-all text-xl">
                         😊
+                    </button>
+
+                    {{-- Canned Responses Button --}}
+                    <button type="button" wire:click="$toggle('showCanned')"
+                        class="w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center transition-all
+                            {{ $showCanned ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400 hover:bg-slate-200' }}">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10"/>
+                        </svg>
                     </button>
 
                     {{-- Text Input --}}

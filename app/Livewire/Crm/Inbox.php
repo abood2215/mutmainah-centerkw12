@@ -8,6 +8,8 @@ use App\Services\ChatwootService;
 use App\Models\CrmConversation;
 use App\Models\CrmMessage;
 use App\Models\CrmClient;
+use App\Models\CannedResponse;
+use App\Models\ConversationAssignment;
 
 class Inbox extends Component
 {
@@ -26,9 +28,37 @@ class Inbox extends Component
     public $pendingClientPhone = '';
     public $pendingClientName  = '';
 
+    // ─── New Properties ────────────────────────────────────────────────────────
+
+    /** Chatwoot agents list: [ [ id, name, availability_status ] ] */
+    public array $agents = [];
+
+    /** Name of the currently assigned agent for the active conversation */
+    public string $assignedAgentName = '';
+
+    /** Canned responses search query */
+    public string $cannedSearch = '';
+
+    /** Whether the canned responses dropdown is shown */
+    public bool $showCanned = false;
+
+    /** Total unread conversations count */
+    public int $unreadTotal = 0;
+
+    // ─── Mount ─────────────────────────────────────────────────────────────────
+
     public function mount()
     {
         $this->loadConversations();
+        $this->getUnreadCount();
+
+        // Load Chatwoot agents
+        try {
+            $chatwoot = new ChatwootService();
+            $this->agents = $chatwoot->getAgents();
+        } catch (\Exception $e) {
+            $this->agents = [];
+        }
 
         // افتح محادثة العميل تلقائياً لما يجي من ملف العميل
         if ($phone = request('phone')) {
@@ -37,35 +67,32 @@ class Inbox extends Component
             if ($foundId) {
                 $this->selectConversation($foundId);
             } else {
-                // ما في محادثة بعد → جهّز UI لبدء محادثة جديدة
                 $this->pendingClientPhone = $phone;
                 $this->pendingClientName  = request('name', '');
             }
         }
     }
 
+    // ─── Helpers ───────────────────────────────────────────────────────────────
+
     private function findConversationByPhone(string $phone): ?int
     {
         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
 
-        // 1. البحث عبر Chatwoot contact search (أدق)
         if ($this->source === 'chatwoot') {
             try {
                 $chatwoot = new ChatwootService();
 
-                // جرّب البحث بالرقم الكامل وبـ + أيضاً
                 foreach ([$phone, '+' . ltrim($phone, '+')] as $searchTerm) {
                     $contact = $chatwoot->searchContact($searchTerm);
                     if ($contact && isset($contact['id'])) {
                         $convs = $chatwoot->getContactConversations((int) $contact['id']);
-                        // خذ أحدث محادثة في نفس الـ inbox
                         $inboxId = config('chatwoot.inbox_id');
                         $found = collect($convs)
                             ->filter(fn($c) => ($c['inbox_id'] ?? 0) == $inboxId)
                             ->sortByDesc('last_activity_at')
                             ->first();
 
-                        // إذا ما فلّينا بالـ inbox, خذ أي محادثة
                         if (!$found) {
                             $found = collect($convs)->sortByDesc('last_activity_at')->first();
                         }
@@ -76,7 +103,6 @@ class Inbox extends Component
             } catch (\Exception $e) {}
         }
 
-        // 2. مطابقة بالأرقام في المحادثات المحمّلة
         foreach ($this->conversations as $conv) {
             $convPhone = preg_replace('/[^0-9]/', '', $conv['client_phone'] ?? '');
             if (!$convPhone) continue;
@@ -90,9 +116,10 @@ class Inbox extends Component
         return null;
     }
 
+    // ─── Conversations ─────────────────────────────────────────────────────────
+
     public function loadConversations()
     {
-        // أولاً: جرّب Chatwoot
         try {
             $chatwoot = new ChatwootService();
             $raw = $chatwoot->getConversations();
@@ -100,6 +127,11 @@ class Inbox extends Component
             if (!empty($raw)) {
                 $this->source = 'chatwoot';
                 $this->conversations = collect($raw)->map(function ($c) {
+                    // Pull saved assignment for this conversation
+                    $assignment = ConversationAssignment::where('chatwoot_conv_id', $c['id'])
+                        ->latest('assigned_at')
+                        ->first();
+
                     return [
                         'id'              => $c['id'],
                         'status'          => $c['status'],
@@ -111,13 +143,13 @@ class Inbox extends Component
                         'client_phone'    => $c['meta']['sender']['phone_number'] ?? '',
                         'unread'          => $c['unread_count'] ?? 0,
                         'conv_source'     => 'chatwoot',
+                        'assigned_agent'  => $assignment?->agent_name ?? '',
                     ];
                 })->values()->all();
                 return;
             }
         } catch (\Exception $e) {}
 
-        // Fallback: من قاعدة البيانات المحلية
         $this->source = 'local';
         $this->conversations = CrmConversation::with('client')
             ->when($this->filterChannel, fn($q) => $q->where('channel', $this->filterChannel))
@@ -133,6 +165,7 @@ class Inbox extends Component
                     'client_phone'    => $c->client->phone ?? '',
                     'unread'          => 0,
                     'conv_source'     => 'local',
+                    'assigned_agent'  => '',
                 ];
             })->values()->all();
     }
@@ -141,13 +174,11 @@ class Inbox extends Component
     {
         $this->activeConversationId = $id;
 
-        // دائماً أعد التحميل عشان نضمن البيانات موجودة
         $this->loadConversations();
 
         $this->activeConvData = collect($this->conversations)
             ->first(fn($c) => $c['id'] == $id);
 
-        // إذا ما لقيناها في الـ source الحالي، ابنِ بيانات بسيطة
         if (!$this->activeConvData) {
             $this->activeConvData = [
                 'id'              => $id,
@@ -158,24 +189,33 @@ class Inbox extends Component
                 'client_phone'    => '',
                 'unread'          => 0,
                 'conv_source'     => $this->source,
+                'assigned_agent'  => '',
             ];
         }
 
+        // Load assignment info for this conversation
+        $assignment = ConversationAssignment::where('chatwoot_conv_id', $id)
+            ->latest('assigned_at')
+            ->first();
+        $this->assignedAgentName = $assignment?->agent_name ?? '';
+
         $this->loadMessages();
 
-        // علّم المحادثة كمقروءة
         if ($this->source === 'chatwoot') {
             try {
                 (new ChatwootService())->markAsRead((int) $id);
             } catch (\Exception $e) {}
         }
 
-        // صفّر عداد الغير مقروء محلياً فوراً
         $this->conversations = collect($this->conversations)->map(function ($c) use ($id) {
             if ($c['id'] == $id) $c['unread'] = 0;
             return $c;
         })->values()->all();
+
+        $this->getUnreadCount();
     }
+
+    // ─── Messages ──────────────────────────────────────────────────────────────
 
     public function loadMessages()
     {
@@ -208,7 +248,6 @@ class Inbox extends Component
             } catch (\Exception $e) {}
         }
 
-        // Local DB
         $this->messages = CrmMessage::where('conversation_id', $this->activeConversationId)
             ->orderBy('sent_at', 'asc')
             ->get()
@@ -222,6 +261,8 @@ class Inbox extends Component
             })->values()->all();
     }
 
+    // ─── Send ───────────────────────────────────────────────────────────────────
+
     public function startNewConversation()
     {
         if (!$this->pendingClientPhone || empty(trim($this->newMessage))) return;
@@ -230,7 +271,6 @@ class Inbox extends Component
             try {
                 $chatwoot = new ChatwootService();
 
-                // ابحث عن contact أو أنشئ جديد
                 $contact = $chatwoot->searchContact($this->pendingClientPhone);
                 if (!$contact) {
                     $contact = $chatwoot->createContact(
@@ -244,7 +284,7 @@ class Inbox extends Component
                     if ($conv && isset($conv['id'])) {
                         $convId = (int) $conv['id'];
                         $chatwoot->sendMessage($convId, $this->newMessage);
-                        $this->newMessage        = '';
+                        $this->newMessage         = '';
                         $this->pendingClientPhone = '';
                         $this->pendingClientName  = '';
                         $this->loadConversations();
@@ -262,7 +302,6 @@ class Inbox extends Component
     {
         if (empty(trim($this->newMessage))) return;
 
-        // إذا في محادثة pending (عميل جديد)
         if ($this->pendingClientPhone && !$this->activeConversationId) {
             $this->startNewConversation();
             return;
@@ -276,7 +315,6 @@ class Inbox extends Component
                 $chatwoot->sendMessage($this->activeConversationId, $this->newMessage, $this->isPrivateNote);
             } catch (\Exception $e) {}
         } else {
-            // إرسال عبر WhatsApp API مباشرة
             $conv = CrmConversation::with('client')->find($this->activeConversationId);
             if ($conv && $conv->client && $conv->client->phone) {
                 $client = $conv->client;
@@ -294,42 +332,117 @@ class Inbox extends Component
                 ->update(['last_message_at' => now()]);
         }
 
-        $this->newMessage = '';
+        $this->newMessage  = '';
+        $this->showCanned  = false;
         $this->loadMessages();
     }
 
     public function toggleStatus($id)
     {
+        $currentConv = collect($this->conversations)->first(fn($c) => $c['id'] == $id);
+        $currentStatus = $currentConv['status'] ?? 'open';
+        $newStatus = $currentStatus === 'open' ? 'resolved' : 'open';
+
         if ($this->source === 'chatwoot') {
             try {
                 $chatwoot = new ChatwootService();
-                $currentConv = collect($this->conversations)->first(fn($c) => $c['id'] == $id);
-                $currentStatus = $currentConv['status'] ?? 'open';
-                $newStatus = $currentStatus === 'open' ? 'resolved' : 'open';
-                $chatwoot->toggleStatus($id, $newStatus);
+                $chatwoot->toggleStatus((int) $id, $newStatus);
             } catch (\Exception $e) {}
+
+            // نحدث الحالة محلياً بدون إعادة جلب من Chatwoot
+            // لأن Chatwoot ترجع فقط المحادثات المفتوحة فتختفي المغلقة من القائمة
+            $this->conversations = collect($this->conversations)->map(function ($c) use ($id, $newStatus) {
+                if ($c['id'] == $id) {
+                    $c['status'] = $newStatus;
+                }
+                return $c;
+            })->values()->all();
         } else {
             $conv = CrmConversation::find($id);
             if ($conv) {
-                $conv->status = $conv->status === 'open' ? 'resolved' : 'open';
+                $conv->status = $newStatus;
                 $conv->save();
             }
+            $this->loadConversations();
         }
 
-        $this->loadConversations();
-
-        // حدّث activeConvData بعد تغيير الحالة
         if ($this->activeConversationId) {
             $this->activeConvData = collect($this->conversations)
                 ->first(fn($c) => $c['id'] == $this->activeConversationId);
         }
     }
 
+    // ─── Assignment ────────────────────────────────────────────────────────────
+
+    /**
+     * Assign a Chatwoot agent to the active conversation.
+     */
+    public function assignConversation(int $agentId, string $agentName): void
+    {
+        if (!$this->activeConversationId) return;
+
+        try {
+            $chatwoot = new ChatwootService();
+            $chatwoot->assignConversation((int) $this->activeConversationId, $agentId);
+        } catch (\Exception $e) {}
+
+        ConversationAssignment::updateOrCreate(
+            ['chatwoot_conv_id' => $this->activeConversationId],
+            [
+                'conversation_id' => $this->activeConversationId,
+                'agent_name'      => $agentName,
+                'assigned_at'     => now(),
+            ]
+        );
+
+        $this->assignedAgentName = $agentName;
+        $this->loadConversations();
+    }
+
+    // ─── Canned Responses ──────────────────────────────────────────────────────
+
+    /**
+     * Returns filtered canned responses based on $cannedSearch.
+     */
+    public function loadCannedResponses(): array
+    {
+        return CannedResponse::when($this->cannedSearch, function ($q) {
+            $search = $this->cannedSearch;
+            $q->where('title', 'LIKE', "%{$search}%")
+              ->orWhere('content', 'LIKE', "%{$search}%");
+        })->orderBy('title')->get()->map(fn($r) => [
+            'id'      => $r->id,
+            'title'   => $r->title,
+            'content' => $r->content,
+        ])->values()->all();
+    }
+
+    /**
+     * Fill newMessage with selected canned response content.
+     */
+    public function selectCannedResponse(string $content): void
+    {
+        $this->newMessage   = $content;
+        $this->showCanned   = false;
+        $this->cannedSearch = '';
+    }
+
+    // ─── Unread Count ──────────────────────────────────────────────────────────
+
+    public function getUnreadCount(): void
+    {
+        $this->unreadTotal = collect($this->conversations)
+            ->filter(fn($c) => ($c['unread'] ?? 0) > 0)
+            ->count();
+    }
+
+    // ─── Refresh ───────────────────────────────────────────────────────────────
+
     public function refreshAll()
     {
         $this->loadConversations();
+        $this->getUnreadCount();
 
-        // بعد تحديث المحادثات، حدّث بيانات المحادثة النشطة
         if ($this->activeConversationId) {
             $found = collect($this->conversations)
                 ->first(fn($c) => $c['id'] == $this->activeConversationId);
@@ -346,6 +459,8 @@ class Inbox extends Component
         $this->refreshAll();
     }
 
+    // ─── Render ────────────────────────────────────────────────────────────────
+
     public function render()
     {
         $filteredConversations = collect($this->conversations)
@@ -359,6 +474,9 @@ class Inbox extends Component
             })
             ->values()->all();
 
-        return view('livewire.crm.inbox', compact('filteredConversations'))->layout('layouts.app');
+        $cannedResponses = $this->showCanned ? $this->loadCannedResponses() : [];
+
+        return view('livewire.crm.inbox', compact('filteredConversations', 'cannedResponses'))
+            ->layout('layouts.app');
     }
 }
