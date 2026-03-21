@@ -15,7 +15,7 @@ use App\Livewire\Crm\Settings;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['web'])->prefix('crm')->group(function () {
+Route::middleware(['web', 'auth'])->prefix('crm')->group(function () {
     Route::get('/pipeline', Pipeline::class)->name('crm.pipeline');
     Route::get('/clients', Clients::class)->name('crm.clients');
     Route::get('/clients/{id}', ClientShow::class)->name('crm.client-show');

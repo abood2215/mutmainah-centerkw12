@@ -56,16 +56,27 @@
     </nav>
 
     <!-- Footer / User -->
-    <div class="px-4 py-5 border-t border-slate-100">
+    <div class="px-4 py-4 border-t border-slate-100 space-y-2">
         <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
             <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-black shadow">
-                م
+                {{ auth()->check() ? mb_substr(auth()->user()->name, 0, 1) : 'م' }}
             </div>
             <div class="flex-1 min-w-0">
-                <div class="text-xs font-black text-slate-800 leading-none truncate"> النظام</div>
-                <div class="text-[9px] text-slate-400 font-bold mt-0.5 uppercase tracking-wide">Admin</div>
+                <div class="text-xs font-black text-slate-800 leading-none truncate">{{ auth()->user()->name ?? 'النظام' }}</div>
+                <div class="text-[9px] text-slate-400 font-bold mt-0.5 uppercase tracking-wide">{{ auth()->user()->role ?? 'Admin' }}</div>
             </div>
             <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></div>
         </div>
+
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit"
+                class="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all text-xs font-bold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                تسجيل الخروج
+            </button>
+        </form>
     </div>
 </aside>
