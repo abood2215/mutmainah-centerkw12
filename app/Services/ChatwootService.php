@@ -65,14 +65,14 @@ class ChatwootService
     }
 
     /** إرسال رسالة عبر Chatwoot → WhatsApp */
-    public function sendMessage(int $conversationId, string $content): bool
+    public function sendMessage(int $conversationId, string $content, bool $private = false): bool
     {
         $res = $this->http()->post(
             "/api/v1/accounts/{$this->accountId}/conversations/{$conversationId}/messages",
             [
                 'content'      => $content,
                 'message_type' => 'outgoing',
-                'private'      => false,
+                'private'      => $private,
             ]
         );
 

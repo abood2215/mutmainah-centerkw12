@@ -16,6 +16,7 @@ class Inbox extends Component
     public $conversations   = [];
     public $messages        = [];
     public $newMessage      = '';
+    public $isPrivateNote   = false;
     public $filterChannel   = '';
     public $filterStatus    = '';
     public $searchQuery     = '';
@@ -173,13 +174,22 @@ class Inbox extends Component
                 $raw = $chatwoot->getMessages($this->activeConversationId);
 
                 $this->messages = collect($raw)
-                    ->filter(fn($m) => in_array($m['message_type'], [0, 1]))
+                    ->filter(fn($m) => in_array($m['message_type'], [0, 1, 2]))
                     ->map(fn($m) => [
-                        'id'        => $m['id'],
-                        'content'   => $m['content'] ?? '[رسالة فارغة]',
-                        'direction' => $m['message_type'] === 0 ? 'in' : 'out',
-                        'sent_at'   => isset($m['created_at']) ? \Carbon\Carbon::createFromTimestamp($m['created_at'])->toDateTimeString() : null,
-                        '_ts'       => $m['created_at'] ?? 0,
+                        'id'           => $m['id'],
+                        'content'      => $m['content'] ?? '',
+                        'content_type' => $m['content_type'] ?? 'text',
+                        'direction'    => match((int)($m['message_type'] ?? 0)) {
+                            0 => 'in',
+                            2 => 'activity',
+                            default => 'out',
+                        },
+                        'status'      => $m['status'] ?? 'sent',
+                        'private'     => (bool)($m['private'] ?? false),
+                        'sent_at'     => isset($m['created_at']) ? \Carbon\Carbon::createFromTimestamp($m['created_at'])->toDateTimeString() : null,
+                        '_ts'         => $m['created_at'] ?? 0,
+                        'attachments' => $m['attachments'] ?? [],
+                        'sender_name' => $m['sender']['name'] ?? '',
                     ])->sortBy('_ts')->values()->all();
                 return;
             } catch (\Exception $e) {}
@@ -250,7 +260,7 @@ class Inbox extends Component
         if ($this->source === 'chatwoot') {
             try {
                 $chatwoot = new ChatwootService();
-                $chatwoot->sendMessage($this->activeConversationId, $this->newMessage);
+                $chatwoot->sendMessage($this->activeConversationId, $this->newMessage, $this->isPrivateNote);
             } catch (\Exception $e) {}
         } else {
             // إرسال عبر WhatsApp API مباشرة
