@@ -593,12 +593,23 @@
                                                     {{ $msg['sent_at'] ? \Carbon\Carbon::parse($msg['sent_at'])->format('H:i') : '' }}
                                                 </p>
                                                 {{-- Delivery status --}}
-                                                @if(($msg['status'] ?? 'sent') === 'delivered')
-                                                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                                @elseif(($msg['status'] ?? 'sent') === 'read')
-                                                    <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7M5 13l4 4L19 7"/></svg>
+                                                @if(($msg['status'] ?? 'sent') === 'read')
+                                                    {{-- صحين زرق = مقروءة --}}
+                                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 26 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2 12l4 4L16 6"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l4 4L23 6"/>
+                                                    </svg>
+                                                @elseif(($msg['status'] ?? 'sent') === 'delivered')
+                                                    {{-- صحين رمادي = وصلت --}}
+                                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 26 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2 12l4 4L16 6"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l4 4L23 6"/>
+                                                    </svg>
                                                 @else
-                                                    <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                    {{-- صح واحد رمادي = أُرسلت --}}
+                                                    <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                                    </svg>
                                                 @endif
                                             </div>
                                         </div>
