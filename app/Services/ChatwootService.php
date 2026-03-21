@@ -83,11 +83,8 @@ class ChatwootService
     public function toggleStatus(int $conversationId, string $status): bool
     {
         $res = $this->http()->patch(
-            "/api/v1/accounts/{$this->accountId}/conversations",
-            [
-                'ids'    => [$conversationId],
-                'status' => $status,
-            ]
+            "/api/v1/accounts/{$this->accountId}/conversations/{$conversationId}/update",
+            ['status' => $status]
         );
 
         return $res->successful();
