@@ -1,7 +1,37 @@
 <div dir="rtl" class="flex bg-[#F0F2FF] overflow-hidden" style="height: calc(100vh - 53px);"
      wire:poll.3000ms="refreshAll"
-     x-data="{ showChat: {{ ($activeConversationId || $pendingClientPhone) ? 'true' : 'false' }} }"
-     x-on:livewire:updated.window="if ($wire.activeConversationId) showChat = true">
+     x-data="{
+        showChat: {{ ($activeConversationId || $pendingClientPhone) ? 'true' : 'false' }},
+        prevUnread: {{ $unreadTotal }},
+        initNotifications() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        },
+        playSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.frequency.value = 880; o.type = 'sine';
+                g.gain.setValueAtTime(0.3, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+                o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4);
+            } catch(e) {}
+        },
+        checkNew(newCount) {
+            if (newCount > this.prevUnread) {
+                this.playSound();
+                if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
+                    new Notification('رسالة جديدة 💬', { body: 'وصلتك رسالة جديدة في صندوق الرسائل' });
+                }
+            }
+            this.prevUnread = newCount;
+        }
+     }"
+     x-init="initNotifications()"
+     x-on:livewire:updated.window="if ($wire.activeConversationId) showChat = true; checkNew({{ $unreadTotal }})"
+     >
 
     <!-- Conversations List -->
     <div class="bg-white border-l border-slate-200 flex flex-col shadow-sm flex-shrink-0

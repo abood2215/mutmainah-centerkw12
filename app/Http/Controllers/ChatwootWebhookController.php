@@ -7,7 +7,7 @@ use App\Models\BusinessHour;
 use App\Models\AutoReply;
 use App\Services\ChatwootService;
 
-class ChatwootWebhookController extends Controller
+class ChatwootWebhookController
 {
     /**
      * POST /webhooks/chatwoot
