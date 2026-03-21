@@ -32,12 +32,13 @@ class ChatwootService
     // ────────────────────────────────────────────────
 
     /** جلب كل المحادثات من inbox الواتساب */
-    public function getConversations(int $page = 1): array
+    public function getConversations(string $status = 'open', int $page = 1): array
     {
         $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/conversations", [
-            'inbox_id'    => $this->inboxId,
-            'page'        => $page,
+            'inbox_id'      => $this->inboxId,
+            'page'          => $page,
             'assignee_type' => 'all',
+            'status'        => $status,
         ]);
 
         if (!$res->successful()) return [];
@@ -87,7 +88,7 @@ class ChatwootService
         );
     }
 
-    /** تغيير حالة المحادثة (open / resolved) */
+    /** تغيير حالة المحادثة (open / resolved / pending) */
     public function toggleStatus(int $conversationId, string $status): bool
     {
         $res = $this->http()->patch(
@@ -96,6 +97,110 @@ class ChatwootService
         );
 
         return $res->successful();
+    }
+
+    // ────────────────────────────────────────────────
+    // Labels
+    // ────────────────────────────────────────────────
+
+    /**
+     * جلب كل الوسوم (Labels) المتاحة في الحساب
+     * يرجع: [ [ id, title, color ] ]
+     */
+    public function getLabels(): array
+    {
+        $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/labels");
+
+        if (!$res->successful()) return [];
+
+        return collect($res->json('payload', []))->map(fn($l) => [
+            'id'    => $l['id'] ?? 0,
+            'title' => $l['title'] ?? '',
+            'color' => $l['color'] ?? '#6366f1',
+        ])->values()->all();
+    }
+
+    /**
+     * تعيين وسوم لمحادثة
+     */
+    public function setConversationLabels(int $convId, array $labels): bool
+    {
+        $res = $this->http()->post(
+            "/api/v1/accounts/{$this->accountId}/conversations/{$convId}/labels",
+            ['labels' => $labels]
+        );
+
+        return $res->successful();
+    }
+
+    // ────────────────────────────────────────────────
+    // Teams
+    // ────────────────────────────────────────────────
+
+    /**
+     * جلب قائمة الفرق (Teams)
+     * يرجع: [ [ id, name ] ]
+     */
+    public function getTeams(): array
+    {
+        $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/teams");
+
+        if (!$res->successful()) return [];
+
+        return collect($res->json() ?? [])->map(fn($t) => [
+            'id'   => $t['id'] ?? 0,
+            'name' => $t['name'] ?? '',
+        ])->values()->all();
+    }
+
+    /**
+     * تعيين فريق لمحادثة — إذا $teamId = 0 يُلغي التعيين
+     */
+    public function assignTeam(int $convId, int $teamId): bool
+    {
+        $res = $this->http()->post(
+            "/api/v1/accounts/{$this->accountId}/conversations/{$convId}/assignments",
+            ['team_id' => $teamId > 0 ? $teamId : null]
+        );
+
+        return $res->successful();
+    }
+
+    // ────────────────────────────────────────────────
+    // Priority
+    // ────────────────────────────────────────────────
+
+    /**
+     * تعيين أولوية للمحادثة (none / low / medium / high / urgent)
+     */
+    public function setPriority(int $convId, string $priority): bool
+    {
+        $res = $this->http()->patch(
+            "/api/v1/accounts/{$this->accountId}/conversations/{$convId}",
+            ['priority' => $priority ?: null]
+        );
+
+        return $res->successful();
+    }
+
+    // ────────────────────────────────────────────────
+    // Mute / Unmute
+    // ────────────────────────────────────────────────
+
+    /** كتم إشعارات محادثة */
+    public function muteConversation(int $convId): void
+    {
+        $this->http()->post(
+            "/api/v1/accounts/{$this->accountId}/conversations/{$convId}/mute"
+        );
+    }
+
+    /** إلغاء كتم إشعارات محادثة */
+    public function unmuteConversation(int $convId): void
+    {
+        $this->http()->post(
+            "/api/v1/accounts/{$this->accountId}/conversations/{$convId}/unmute"
+        );
     }
 
     // ────────────────────────────────────────────────
@@ -140,7 +245,7 @@ class ChatwootService
     public function searchContact(string $phone): ?array
     {
         $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/contacts/search", [
-            'q'             => $phone,
+            'q'                => $phone,
             'include_contacts' => true,
         ]);
 
@@ -155,7 +260,6 @@ class ChatwootService
     {
         $res = $this->http()->get("/api/v1/accounts/{$this->accountId}/contacts/{$contactId}/conversations");
         if (!$res->successful()) return [];
-        // Chatwoot يرجع { payload: { meta: {}, payload: [...] } }
         $data = $res->json('payload', []);
         return is_array($data) && isset($data['payload']) ? $data['payload'] : (array) $data;
     }
@@ -164,7 +268,7 @@ class ChatwootService
     public function createContact(string $name, string $phone): ?array
     {
         $res = $this->http()->post("/api/v1/accounts/{$this->accountId}/contacts", [
-            'name'  => $name,
+            'name'         => $name,
             'phone_number' => '+' . ltrim($phone, '+'),
         ]);
 
@@ -189,10 +293,8 @@ class ChatwootService
     /** إرسال رسالة لرقم هاتف — يستخدم المحادثة الموجودة إن وجدت */
     public function sendToPhone(string $name, string $phone, string $message): bool
     {
-        // 1. ابحث عن contact
         $contact = $this->searchContact($phone);
 
-        // 2. أنشئ إذا ما وجد
         if (!$contact) {
             $contact = $this->createContact($name, $phone);
             if (!$contact) return false;
@@ -201,23 +303,19 @@ class ChatwootService
         $contactId = $contact['id'] ?? null;
         if (!$contactId) return false;
 
-        // 3. ابحث عن محادثة موجودة (مفتوحة أو pending) بدل إنشاء جديدة
         $convId = null;
         $existingConvs = $this->getContactConversations($contactId);
         if (!empty($existingConvs)) {
-            // خذ أحدث محادثة مفتوحة
             $open = collect($existingConvs)
                 ->filter(fn($c) => in_array($c['status'] ?? '', ['open', 'pending']))
                 ->sortByDesc('last_activity_at')
                 ->first();
-            // إذا ما في مفتوحة، خذ أي محادثة
             if (!$open) {
                 $open = collect($existingConvs)->sortByDesc('last_activity_at')->first();
             }
             $convId = $open['id'] ?? null;
         }
 
-        // 4. أنشئ محادثة جديدة فقط إذا ما في موجودة
         if (!$convId) {
             $conv = $this->createConversation($contactId);
             if (!$conv) return false;
@@ -226,7 +324,6 @@ class ChatwootService
 
         if (!$convId) return false;
 
-        // 5. أرسل الرسالة
         return $this->sendMessage((int) $convId, $message);
     }
 
