@@ -592,23 +592,24 @@
                                                 <p class="text-[10px] text-slate-400">
                                                     {{ $msg['sent_at'] ? \Carbon\Carbon::parse($msg['sent_at'])->format('H:i') : '' }}
                                                 </p>
-                                                {{-- Delivery status --}}
-                                                @if(($msg['status'] ?? 'sent') === 'read')
-                                                    {{-- صحين زرق = مقروءة --}}
-                                                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 26 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2 12l4 4L16 6"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l4 4L23 6"/>
+                                                {{-- Delivery status ticks --}}
+                                                @php $msgStatus = $msg['status'] ?? 'sent'; @endphp
+                                                @if($msgStatus === 'read')
+                                                    {{-- ✓✓ أزرق = مقروءة --}}
+                                                    <svg class="flex-shrink-0" style="width:18px;height:12px;" viewBox="0 0 28 16" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="1,8 5,12 13,4"/>
+                                                        <polyline points="7,8 11,12 27,2"/>
                                                     </svg>
-                                                @elseif(($msg['status'] ?? 'sent') === 'delivered')
-                                                    {{-- صحين رمادي = وصلت --}}
-                                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 26 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2 12l4 4L16 6"/>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l4 4L23 6"/>
+                                                @elseif($msgStatus === 'delivered')
+                                                    {{-- ✓✓ رمادي = وصلت --}}
+                                                    <svg class="flex-shrink-0" style="width:18px;height:12px;" viewBox="0 0 28 16" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="1,8 5,12 13,4"/>
+                                                        <polyline points="7,8 11,12 27,2"/>
                                                     </svg>
                                                 @else
-                                                    {{-- صح واحد رمادي = أُرسلت --}}
-                                                    <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                                    {{-- ✓ رمادي فاتح = أُرسلت --}}
+                                                    <svg class="flex-shrink-0" style="width:14px;height:12px;" viewBox="0 0 18 16" fill="none" stroke="#cbd5e1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="1,8 5,12 17,2"/>
                                                     </svg>
                                                 @endif
                                             </div>

@@ -22,13 +22,8 @@ trait CrmHelpers
         $user = auth()->user();
         if (!$user) return $query;
 
-        // manager jobs as specified in the prompt
-        $managerJobs = [1, 11, 13, 20, 23, 24, 40];
-        
-        // Check jop attribute as requested
-        if (property_exists($user, 'jop') && in_array($user->jop, $managerJobs)) {
-            return $query;
-        }
+        // Admin sees all clients, agent sees only their own
+        if ($user->isAdmin()) return $query;
 
         return $query->where('assigned_to', $user->id);
     }

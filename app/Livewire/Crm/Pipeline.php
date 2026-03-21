@@ -37,17 +37,20 @@ class Pipeline extends Component
 
     public function moveStage($clientId, $newStage)
     {
-        $client = CrmClient::find($clientId);
+        $validStages = array_keys(CrmClient::getStages());
+        if (!in_array($newStage, $validStages)) return;
+
+        $client = CrmClient::forCurrentUser()->where('id', $clientId)->first();
         if ($client) {
             $oldStage = $client->stage;
             $client->stage = $newStage;
             $client->save();
 
             CrmActivityLog::create([
-                'client_id' => $client->id,
-                'performed_by' => auth()->id() ?? 1,
-                'action' => 'stage_changed',
-                'metadata' => ['from' => $oldStage, 'to' => $newStage]
+                'client_id'    => $client->id,
+                'performed_by' => auth()->id(),
+                'action'       => 'stage_changed',
+                'metadata'     => ['from' => $oldStage, 'to' => $newStage],
             ]);
 
             $this->loadClients();

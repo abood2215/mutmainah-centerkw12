@@ -22,6 +22,9 @@ class Team extends Component
 
     public function mount(): void
     {
+        if (!auth()->user()?->isAdmin()) {
+            abort(403, 'هذه الصفحة للمدير فقط.');
+        }
         $this->loadUsers();
     }
 
@@ -82,6 +85,19 @@ class Team extends Component
         $this->loadUsers();
 
         session()->flash('success', 'تم إضافة العضو بنجاح');
+    }
+
+    public function deleteUser(int $id): void
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
+        // Prevent deleting yourself
+        if ($id === auth()->id()) return;
+
+        User::where('id', $id)->delete();
+        $this->loadUsers();
+
+        session()->flash('success', 'تم حذف العضو بنجاح');
     }
 
     public function render()

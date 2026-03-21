@@ -24,7 +24,9 @@ class ClientShow extends Component
 
     public function loadClient()
     {
-        $this->client = CrmClient::with(['notes', 'tasks', 'activityLogs', 'conversations'])->findOrFail($this->clientId);
+        $this->client = CrmClient::forCurrentUser()
+            ->with(['notes', 'tasks', 'activityLogs', 'conversations'])
+            ->findOrFail($this->clientId);
     }
 
     public function setTab($tab)
@@ -38,15 +40,15 @@ class ClientShow extends Component
 
         CrmNote::create([
             'client_id' => $this->clientId,
-            'author_id' => auth()->id() ?? 1,
-            'content' => $this->newNote
+            'author_id' => auth()->id(),
+            'content'   => $this->newNote,
         ]);
 
         CrmActivityLog::create([
-            'client_id' => $this->clientId,
-            'performed_by' => auth()->id() ?? 1,
-            'action' => 'note_added',
-            'metadata' => ['content' => $this->newNote]
+            'client_id'    => $this->clientId,
+            'performed_by' => auth()->id(),
+            'action'       => 'note_added',
+            'metadata'     => ['content' => $this->newNote],
         ]);
 
         $this->newNote = '';

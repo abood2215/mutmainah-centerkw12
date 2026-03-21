@@ -92,12 +92,12 @@ class Clients extends Component
             'priority'   => $this->newPriority,
             'deal_value' => $this->newDealValue ?: 0,
             'notes'      => $this->newNotes ?: null,
-            'assigned_to'=> auth()->id() ?? 1,
+            'assigned_to'=> auth()->id(),
         ]);
 
         CrmActivityLog::create([
             'client_id'    => $client->id,
-            'performed_by' => auth()->id() ?? 1,
+            'performed_by' => auth()->id(),
             'action'       => 'client_created',
             'metadata'     => ['source' => $this->newSource],
         ]);
@@ -113,7 +113,7 @@ class Clients extends Component
 
     public function deleteClient($id)
     {
-        $client = CrmClient::find($id);
+        $client = CrmClient::forCurrentUser()->where('id', $id)->first();
         if ($client) {
             $client->delete();
             session()->flash('message', 'تم حذف العميل بنجاح');

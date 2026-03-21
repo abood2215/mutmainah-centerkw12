@@ -81,6 +81,7 @@
         <div class="space-y-1 mb-4">
             @foreach($links as $link)
                 @if(!in_array($link['id'], $teamLinks)) @continue @endif
+                @if($link['id'] === 'team' && !auth()->user()?->isAdmin()) @continue @endif
                 @php $isActive = str_contains($currentPath, $link['id']); @endphp
                 <a href="{{ $link['route'] }}"
                    x-on:click="sidebarOpen = false"

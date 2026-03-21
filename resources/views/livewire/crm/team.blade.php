@@ -103,6 +103,15 @@
                     @else
                         <p class="text-[10px] text-slate-300 font-semibold">لم يسجّل دخول بعد</p>
                     @endif
+
+                    {{-- Delete button (can't delete yourself) --}}
+                    @if($user['id'] !== auth()->id())
+                        <button wire:click="deleteUser({{ $user['id'] }})"
+                                wire:confirm="هل أنت متأكد من حذف هذا العضو؟"
+                                class="text-[10px] font-bold text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors mt-1">
+                            حذف
+                        </button>
+                    @endif
                 </div>
             @endforeach
         </div>

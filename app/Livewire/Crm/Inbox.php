@@ -374,21 +374,14 @@ class Inbox extends Component
             if ($c) { $c->status = $newStatus; $c->save(); }
         }
 
-        if ($newStatus === 'resolved') {
-            // Remove conversation from current list and clear active view
-            $this->conversations = collect($this->conversations)
-                ->filter(fn($c) => $c['id'] != $id)
-                ->values()->all();
-            $this->activeConversationId = null;
-            $this->activeConvData       = null;
-            $this->messages             = [];
-            // filterStatus stays as-is (open) so user sees open conversations
-        } else {
-            // Re-opening: switch to open tab so the conversation appears
-            $this->filterStatus = 'open';
-            $this->loadConversations();
-            $found = collect($this->conversations)->first(fn($c) => $c['id'] == $this->activeConversationId);
-            if ($found) $this->activeConvData = $found;
+        // Switch to the tab that matches the new status so conversation stays visible
+        $this->filterStatus = $newStatus;
+        $this->loadConversations();
+
+        // Keep the conversation selected in its new tab
+        $found = collect($this->conversations)->first(fn($c) => $c['id'] == $id);
+        if ($found) {
+            $this->activeConvData = $found;
         }
 
         $this->getUnreadCount();
