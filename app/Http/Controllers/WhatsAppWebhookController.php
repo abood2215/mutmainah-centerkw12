@@ -8,6 +8,7 @@ use App\Models\CrmConversation;
 use App\Models\CrmMessage;
 use App\Models\CrmActivityLog;
 use App\Models\CrmCampaignRecipient;
+use App\Services\ChatwootService;
 
 class WhatsAppWebhookController
 {
@@ -74,9 +75,11 @@ class WhatsAppWebhookController
 
         // ابحث عن العميل بالهاتف
         $client = CrmClient::where('phone', 'LIKE', "%{$from}%")->first();
+        $isNewClient = false;
 
         // إذا لم يوجد العميل — أنشئه تلقائياً
         if (!$client) {
+            $isNewClient = true;
             $contactName = $contacts[0]['profile']['name'] ?? "واتساب {$from}";
             $client = CrmClient::create([
                 'name'   => $contactName,
@@ -125,8 +128,24 @@ class WhatsAppWebhookController
         // حدّث وقت آخر رسالة
         $conversation->update(['last_message_at' => $sentAt]);
 
+        // إذا عميل جديد — أرسل له رسالة ترحيبية تلقائية
+        if ($isNewClient) {
+            $this->sendWelcomeMessage($client->name, $from);
+        }
+
         // إذا كانت الرسالة رداً على حملة — سجّل الرد
         $this->markCampaignReply($client->id, $sentAt);
+    }
+
+    private function sendWelcomeMessage(string $name, string $phone): void
+    {
+        $message = "مرحباً {$name} 👋\nشكراً لتواصلك مع بيوت محبة!\nتم استلام رسالتك وسيتواصل معك أحد فريقنا في أقرب وقت ممكن. ✨";
+
+        try {
+            (new ChatwootService())->sendToPhone($name, $phone, $message);
+        } catch (\Exception $e) {
+            // silent fail — لا نوقف معالجة الرسالة بسبب خطأ في الترحيب
+        }
     }
 
     private function handleStatusUpdate(array $status): void
