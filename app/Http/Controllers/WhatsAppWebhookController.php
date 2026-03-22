@@ -96,12 +96,26 @@ class WhatsAppWebhookController
             ]);
         }
 
-        // ابحث عن محادثة مفتوحة أو أنشئ واحدة
+        // ابحث عن محادثة مفتوحة أو معلّقة أولاً
         $conversation = CrmConversation::where('client_id', $client->id)
             ->where('channel', 'whatsapp')
-            ->where('status', 'open')
+            ->whereIn('status', ['open', 'pending'])
             ->first();
 
+        // إذا ما في مفتوحة — ابحث عن ملغاة وأعد فتحها
+        if (!$conversation) {
+            $conversation = CrmConversation::where('client_id', $client->id)
+                ->where('channel', 'whatsapp')
+                ->where('status', 'resolved')
+                ->latest('updated_at')
+                ->first();
+
+            if ($conversation) {
+                $conversation->update(['status' => 'open', 'last_message_at' => $sentAt]);
+            }
+        }
+
+        // إذا ما في أي محادثة — أنشئ واحدة جديدة
         if (!$conversation) {
             $conversation = CrmConversation::create([
                 'client_id'       => $client->id,
