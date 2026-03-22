@@ -12,10 +12,10 @@
          initPolling() {
              this._pollConvs = setInterval(() => {
                  if (!document.hidden) $wire.loadConversations();
-             }, 20000);
+             }, 30000);
              this._pollMsgs = setInterval(() => {
                  if (!document.hidden && $wire.activeConversationId) $wire.loadMessages(true);
-             }, 12000);
+             }, 15000);
          },
          playSound() {
              try {
@@ -57,7 +57,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-sm font-black text-slate-900 leading-none">صندوق الرسائل</h2>
+                        <h2 class="text-sm font-black text-slate-900 leading-none">💬 صندوق الرسائل</h2>
                         <p class="text-[10px] text-slate-400 mt-0.5 font-medium">{{ count($conversations) }} محادثة</p>
                     </div>
                 </div>
@@ -86,23 +86,37 @@
                 <button wire:click="$set('filterStatus', 'open')"
                     class="flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all duration-200
                            {{ $filterStatus === 'open' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700' }}">
-                    مفتوح
+                    🟢 مفتوح
                 </button>
                 <button wire:click="$set('filterStatus', 'pending')"
                     class="flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all duration-200
                            {{ $filterStatus === 'pending' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700' }}">
-                    مقترح
+                    ⏳ مقترح
                 </button>
                 <button wire:click="$set('filterStatus', 'resolved')"
                     class="flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all duration-200
                            {{ $filterStatus === 'resolved' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700' }}">
-                    ملغ
+                    ✅ محلول
                 </button>
             </div>
         </div>
 
         {{-- Conversation List --}}
         <div class="flex-1 overflow-y-auto p-2 space-y-0.5" style="scrollbar-width:thin;scrollbar-color:#e2e8f0 transparent;">
+
+            {{-- Loading skeleton when filter changes --}}
+            <div wire:loading wire:target="updatedFilterStatus" class="space-y-1 px-1 pt-1">
+                @for($i = 0; $i < 5; $i++)
+                    <div class="flex items-start gap-3 p-3 rounded-xl animate-pulse bg-slate-50">
+                        <div class="w-11 h-11 rounded-xl bg-slate-200 flex-shrink-0"></div>
+                        <div class="flex-1 space-y-2 pt-1">
+                            <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+                            <div class="h-2.5 bg-slate-100 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                @endfor
+            </div>
+
             @forelse($filteredConversations as $conv)
                 @php
                     $isActive = $activeConversationId == $conv['id'];
@@ -113,8 +127,10 @@
                 @endphp
                 <div wire:click="selectConversation({{ $conv['id'] }})"
                      x-on:click="showChat = true"
+                     wire:loading.class="opacity-60 pointer-events-none" wire:target="selectConversation"
                      class="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-150 group
-                        {{ $isActive ? 'bg-indigo-50 border border-indigo-200/70 shadow-sm' : 'border border-transparent hover:bg-slate-50 hover:border-slate-100' }}">
+                        {{ $isActive ? 'bg-indigo-50 border border-indigo-200/70 shadow-sm' : 'border border-transparent hover:bg-slate-50 hover:border-slate-100' }}
+                        {{ $loadingConvId == $conv['id'] ? 'opacity-70' : '' }}">
 
                     {{-- Avatar --}}
                     <div class="relative flex-shrink-0 mt-0.5">
@@ -169,13 +185,18 @@
                 </div>
             @empty
                 <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-                    <div class="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3">
-                        <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                    <div wire:loading wire:target="updatedFilterStatus, filterStatus" class="flex flex-col items-center gap-3 py-4">
+                        <svg class="w-6 h-6 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                         </svg>
+                        <span class="text-xs font-semibold text-slate-400">جاري التحميل...</span>
                     </div>
-                    <p class="text-sm font-bold text-slate-500">لا توجد محادثات</p>
-                    <p class="text-xs mt-1 text-slate-400">جرّب تغيير الفلتر</p>
+                    <div wire:loading.remove wire:target="updatedFilterStatus, filterStatus" class="flex flex-col items-center">
+                        <span class="text-4xl mb-3">📭</span>
+                        <p class="text-sm font-bold text-slate-500">لا توجد محادثات</p>
+                        <p class="text-xs mt-1 text-slate-400">جرّب تغيير الفلتر</p>
+                    </div>
                 </div>
             @endforelse
         </div>
@@ -253,16 +274,16 @@
                         default    => 'bg-slate-100 text-slate-500 border-slate-200',
                     };
                     $statusLabel = match($convStatus) {
-                        'open'     => 'مفتوح',
-                        'pending'  => 'مقترح',
-                        'resolved' => 'ملغ',
+                        'open'     => '🟢 مفتوح',
+                        'pending'  => '⏳ مقترح',
+                        'resolved' => '✅ محلول',
                         default    => $convStatus,
                     };
                     $priorityBadge = match($activeConvPriority) {
-                        'low'    => ['label'=>'منخفض','class'=>'bg-blue-100 text-blue-700 border-blue-200'],
-                        'medium' => ['label'=>'متوسط','class'=>'bg-amber-100 text-amber-700 border-amber-200'],
-                        'high'   => ['label'=>'مرتفع','class'=>'bg-orange-100 text-orange-700 border-orange-200'],
-                        'urgent' => ['label'=>'عاجل','class'=>'bg-red-100 text-red-700 border-red-200'],
+                        'low'    => ['label'=>'🔵 منخفض','class'=>'bg-blue-100 text-blue-700 border-blue-200'],
+                        'medium' => ['label'=>'🟡 متوسط','class'=>'bg-amber-100 text-amber-700 border-amber-200'],
+                        'high'   => ['label'=>'🟠 مرتفع','class'=>'bg-orange-100 text-orange-700 border-orange-200'],
+                        'urgent' => ['label'=>'🔴 عاجل','class'=>'bg-red-100 text-red-700 border-red-200'],
                         default  => null,
                     };
                     $hColors = ['from-indigo-500 to-violet-600','from-emerald-500 to-teal-600','from-rose-500 to-pink-600','from-amber-500 to-orange-500','from-cyan-500 to-blue-600','from-fuchsia-500 to-purple-600'];
@@ -375,7 +396,7 @@
                                 <div x-show="open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                                     class="absolute left-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden">
                                     <div class="p-1.5">
-                                        @foreach([''=>'بلا أولوية','low'=>'منخفض','medium'=>'متوسط','high'=>'مرتفع','urgent'=>'عاجل'] as $pval=>$plabel)
+                                        @foreach([''=>'⬜ بلا أولوية','low'=>'🔵 منخفض','medium'=>'🟡 متوسط','high'=>'🟠 مرتفع','urgent'=>'🔴 عاجل'] as $pval=>$plabel)
                                             <button wire:click="setPriority('{{ $pval }}')" x-on:click="open=false"
                                                 class="w-full text-right px-3 py-2 text-xs font-semibold hover:bg-slate-50 rounded-lg flex items-center gap-2
                                                        {{ $activeConvPriority===$pval ? 'text-indigo-700 bg-indigo-50' : 'text-slate-700' }}">
@@ -431,15 +452,22 @@
 
                             {{-- Close / Open --}}
                             <button wire:click="toggleStatus({{ $activeConversationId }})"
-                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm transition-all
+                                wire:loading.attr="disabled" wire:target="toggleStatus"
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm transition-all disabled:opacity-60
                                     {{ $convStatus==='open'
                                         ? 'bg-slate-800 hover:bg-slate-900 text-white'
                                         : 'bg-gradient-to-l from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white' }}">
-                                @if($convStatus==='open')
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>إغلاق
-                                @else
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>فتح
-                                @endif
+                                <span wire:loading.remove wire:target="toggleStatus" class="flex items-center gap-1.5">
+                                    @if($convStatus==='open')
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>إغلاق
+                                    @else
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>فتح
+                                    @endif
+                                </span>
+                                <svg wire:loading wire:target="toggleStatus" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
                             </button>
                         </div>
                     </div>
@@ -551,11 +579,18 @@
 
                             @empty
                                 <div class="flex flex-col items-center justify-center h-full py-24">
-                                    <div class="w-16 h-16 rounded-2xl bg-white shadow-sm border border-white/60 flex items-center justify-center mb-3">
-                                        <svg class="w-8 h-8 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                    <div wire:loading wire:target="selectConversation, loadMessages" class="flex flex-col items-center gap-3">
+                                        <svg class="w-8 h-8 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                        </svg>
+                                        <span class="text-sm font-semibold text-slate-500">جاري تحميل الرسائل...</span>
                                     </div>
-                                    <p class="text-sm font-bold text-slate-500">لا توجد رسائل بعد</p>
-                                    <p class="text-xs text-slate-400 mt-1">ابدأ المحادثة من أدناه</p>
+                                    <div wire:loading.remove wire:target="selectConversation, loadMessages" class="flex flex-col items-center">
+                                        <span class="text-4xl mb-3">💬</span>
+                                        <p class="text-sm font-bold text-slate-500">لا توجد رسائل بعد</p>
+                                        <p class="text-xs text-slate-400 mt-1">ابدأ المحادثة من أدناه</p>
+                                    </div>
                                 </div>
                             @endforelse
                         </div>
@@ -692,12 +727,17 @@
 
                                         {{-- Send Button --}}
                                         <button type="submit"
-                                            class="flex-shrink-0 p-2.5 rounded-xl font-bold shadow-sm transition-all
+                                            wire:loading.attr="disabled" wire:target="sendMessage"
+                                            class="flex-shrink-0 p-2.5 rounded-xl font-bold shadow-sm transition-all disabled:opacity-60
                                                    {{ $isPrivateNote
                                                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
                                                        : 'bg-gradient-to-l from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white' }}">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg wire:loading.remove wire:target="sendMessage" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                            </svg>
+                                            <svg wire:loading wire:target="sendMessage" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                                             </svg>
                                         </button>
                                     </div>
@@ -817,7 +857,7 @@
                             <div>
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">الأولوية</p>
                                 <div class="grid grid-cols-2 gap-1.5">
-                                    @foreach([''=>'بلا','low'=>'منخفض','medium'=>'متوسط','high'=>'مرتفع','urgent'=>'عاجل'] as $pv=>$pl)
+                                    @foreach([''=>'⬜ بلا','low'=>'🔵 منخفض','medium'=>'🟡 متوسط','high'=>'🟠 مرتفع','urgent'=>'🔴 عاجل'] as $pv=>$pl)
                                         <button type="button" wire:click="setPriority('{{ $pv }}')"
                                             class="text-[11px] font-bold py-1.5 rounded-lg border transition-all text-center
                                                    {{ $activeConvPriority===$pv

@@ -16,6 +16,7 @@ class Inbox extends Component
     // Core
     public $activeConversationId = null;
     public $activeConvData = null;
+    public int $loadingConvId = 0;
     public $conversations = [];
     public $messages = [];
     public $newMessage = '';
@@ -131,9 +132,17 @@ class Inbox extends Component
 
             if (!empty($raw)) {
                 $this->source = 'chatwoot';
-                $this->conversations = collect($raw)->map(function ($c) {
-                    $assignment = ConversationAssignment::where('chatwoot_conv_id', $c['id'])
-                        ->latest('assigned_at')->first();
+
+                // Fix N+1: load all assignments in one query
+                $convIds     = collect($raw)->pluck('id')->toArray();
+                $assignments = ConversationAssignment::whereIn('chatwoot_conv_id', $convIds)
+                    ->orderBy('assigned_at', 'desc')
+                    ->get()
+                    ->groupBy('chatwoot_conv_id')
+                    ->map(fn($items) => $items->first());
+
+                $this->conversations = collect($raw)->map(function ($c) use ($assignments) {
+                    $assignment = $assignments[$c['id']] ?? null;
                     return [
                         'id'              => $c['id'],
                         'status'          => $c['status'],
@@ -189,6 +198,7 @@ class Inbox extends Component
 
     public function selectConversation($id)
     {
+        $this->loadingConvId        = (int) $id;
         $this->activeConversationId = $id;
         $this->showInfo             = false;
         $this->showLabelsPicker     = false;
@@ -228,6 +238,7 @@ class Inbox extends Component
         $assignment = ConversationAssignment::where('chatwoot_conv_id', $id)->latest('assigned_at')->first();
         if ($assignment?->agent_name) $this->assignedAgentName = $assignment->agent_name;
 
+        $this->loadingConvId = 0;
         $this->loadMessages(false);
 
         if ($this->source === 'chatwoot') {
