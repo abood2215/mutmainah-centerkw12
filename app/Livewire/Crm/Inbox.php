@@ -1,6 +1,7 @@
 <?php
 namespace App\Livewire\Crm;
 
+use Carbon\Carbon;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use App\Services\ChatwootService;
@@ -50,6 +51,8 @@ class Inbox extends Component
     public int $unreadTotal = 0;
     public bool $showLabelsPicker = false;
     public bool $showPriorityPicker = false;
+
+    private ?Carbon $lastRefresh = null;
 
     public function mount()
     {
@@ -190,6 +193,7 @@ class Inbox extends Component
         $this->showInfo             = false;
         $this->showLabelsPicker     = false;
         $this->showPriorityPicker   = false;
+        $this->lastRefresh          = null;
 
         $this->activeConvData = collect($this->conversations)->first(fn($c) => $c['id'] == $id)
             ?? [
@@ -261,7 +265,7 @@ class Inbox extends Component
                         'status'       => $m['status'] ?? 'sent',
                         'private'      => (bool)($m['private'] ?? false),
                         'sent_at'      => isset($m['created_at'])
-                            ? \Carbon\Carbon::createFromTimestamp($m['created_at'])->toDateTimeString()
+                            ? Carbon::createFromTimestamp($m['created_at'])->toDateTimeString()
                             : null,
                         '_ts'          => $m['created_at'] ?? 0,
                         'attachments'  => $m['attachments'] ?? [],
@@ -269,6 +273,7 @@ class Inbox extends Component
                         'sender_type'  => $m['sender']['type'] ?? 'contact',
                     ])->sortBy('_ts')->values()->all();
 
+                $this->lastRefresh = now();
                 $this->dispatch($isRefresh ? 'messages-refreshed' : 'messages-loaded');
                 return;
             } catch (\Exception $e) {}
@@ -290,6 +295,7 @@ class Inbox extends Component
                 'sender_type'  => '',
             ])->values()->all();
 
+        $this->lastRefresh = now();
         $this->dispatch($isRefresh ? 'messages-refreshed' : 'messages-loaded');
     }
 
@@ -552,7 +558,14 @@ class Inbox extends Component
                 $this->activeConvPriority = $found['priority'] ?? $this->activeConvPriority;
                 $this->isMuted            = $found['muted'] ?? $this->isMuted;
             }
-            $this->loadMessages(true); // refresh = smart scroll only
+
+            $secondsSinceLast = is_null($this->lastRefresh)
+                ? PHP_INT_MAX
+                : $this->lastRefresh->diffInSeconds(now());
+
+            if ($secondsSinceLast > 5) {
+                $this->loadMessages(true);
+            }
         }
     }
 

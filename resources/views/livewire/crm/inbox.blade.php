@@ -1,14 +1,23 @@
 <div dir="rtl" class="flex bg-[#F4F6FA] overflow-hidden"
      style="height: calc(100vh - 53px);"
-     wire:poll.3000ms="refreshAll"
      x-data="{
          showChat: {{ ($activeConversationId || $pendingClientPhone) ? 'true' : 'false' }},
          prevUnread: {{ $unreadTotal }},
          emojis: ['😊','😄','👍','🙏','❤️','✅','🔥','💬','📞','📩','⚡','🎉','😢','🤔','👋','💡','⚠️','📋','🕐','✔️'],
+         _pollConvs: null,
+         _pollMsgs: null,
          initNotifications() {
              if ('Notification' in window && Notification.permission === 'default') {
                  Notification.requestPermission();
              }
+         },
+         initPolling() {
+             this._pollConvs = setInterval(() => {
+                 if (!document.hidden) $wire.loadConversations();
+             }, 20000);
+             this._pollMsgs = setInterval(() => {
+                 if (!document.hidden && $wire.activeConversationId) $wire.call('loadMessages', [true]);
+             }, 12000);
          },
          playSound() {
              try {
@@ -31,7 +40,7 @@
              this.prevUnread = newCount;
          }
      }"
-     x-init="initNotifications()"
+     x-init="initNotifications(); initPolling()"
      x-on:livewire:updated.window="if ($wire.activeConversationId) showChat = true; checkNew({{ $unreadTotal }})"
      >
 
