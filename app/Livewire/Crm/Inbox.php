@@ -374,16 +374,20 @@ class Inbox extends Component
             if ($c) { $c->status = $newStatus; $c->save(); }
         }
 
-        // Switch to the tab that matches the new status so conversation stays visible
-        $this->filterStatus = $newStatus;
-        $this->loadConversations();
+        // أزل المحادثة من القائمة الحالية فوراً حتى لا تبقى مرئية في التاب الخاطئ
+        $this->conversations = collect($this->conversations)
+            ->reject(fn($c) => $c['id'] == $id)
+            ->values()->all();
 
-        // Keep the conversation selected in its new tab
-        $found = collect($this->conversations)->first(fn($c) => $c['id'] == $id);
-        if ($found) {
-            $this->activeConvData = $found;
+        // إذا كانت هي المحادثة المفتوحة — أغلق نافذة الشات وانتقل للتاب الجديد
+        if ($this->activeConversationId == $id) {
+            $this->activeConversationId = null;
+            $this->activeConvData       = null;
+            $this->messages             = [];
         }
 
+        $this->filterStatus = $newStatus;
+        $this->loadConversations();
         $this->getUnreadCount();
     }
 
