@@ -119,6 +119,7 @@
 
             @forelse($filteredConversations as $conv)
                 @php
+                    $isActive = $activeConversationId == $conv['id'];
                     $avatarColors = ['from-indigo-500 to-violet-600','from-emerald-500 to-teal-600','from-rose-500 to-pink-600','from-amber-500 to-orange-500','from-cyan-500 to-blue-600','from-fuchsia-500 to-purple-600'];
                     $avatarGrad = $avatarColors[abs(crc32($conv['client_name'])) % 6];
                     $priorityDot = match($conv['priority'] ?? null) { 'low'=>'bg-blue-400','medium'=>'bg-amber-400','high'=>'bg-orange-500','urgent'=>'bg-red-500',default=>'' };
