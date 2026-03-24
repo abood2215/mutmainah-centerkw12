@@ -119,13 +119,13 @@
 
             @forelse($filteredConversations as $conv)
                 @php
-                    $isActive = $activeConversationId == $conv['id'];
                     $avatarColors = ['from-indigo-500 to-violet-600','from-emerald-500 to-teal-600','from-rose-500 to-pink-600','from-amber-500 to-orange-500','from-cyan-500 to-blue-600','from-fuchsia-500 to-purple-600'];
                     $avatarGrad = $avatarColors[abs(crc32($conv['client_name'])) % 6];
                     $priorityDot = match($conv['priority'] ?? null) { 'low'=>'bg-blue-400','medium'=>'bg-amber-400','high'=>'bg-orange-500','urgent'=>'bg-red-500',default=>'' };
                     $statusDot = match($conv['status']??'open') { 'open'=>'bg-emerald-500','pending'=>'bg-amber-500','resolved'=>'bg-rose-400',default=>'bg-slate-400' };
                 @endphp
-                <div wire:click="selectConversation({{ $conv['id'] }})"
+                <div wire:key="conv-{{ $conv['id'] }}"
+                     wire:click="selectConversation({{ $conv['id'] }})"
                      x-on:click="showChat = true"
                      wire:loading.class="opacity-60 pointer-events-none" wire:target="selectConversation"
                      class="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-150 group
@@ -495,6 +495,7 @@
                             @php $prevDate = null; @endphp
 
                             @forelse($messages as $msg)
+                                <div wire:key="msg-{{ $msg['id'] ?? $loop->index }}">
                                 @php $msgDate = $msg['sent_at'] ? \Carbon\Carbon::parse($msg['sent_at'])->toDateString() : null; @endphp
 
                                 {{-- Date separator --}}
@@ -576,6 +577,7 @@
                                         </div>
                                     </div>
                                 @endif
+                                </div>{{-- end wire:key msg --}}
 
                             @empty
                                 <div class="flex flex-col items-center justify-center h-full py-24">
