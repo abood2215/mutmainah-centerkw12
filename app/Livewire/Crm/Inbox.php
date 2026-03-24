@@ -57,7 +57,13 @@ class Inbox extends Component
 
     public function mount()
     {
-        $this->loadConversations();
+        try {
+            $this->loadConversations();
+        } catch (\Throwable $e) {
+            \Log::error('Inbox::loadConversations failed: ' . $e->getMessage());
+            $this->conversations = [];
+        }
+
         $this->getUnreadCount();
 
         if ($this->source === 'chatwoot') {
@@ -66,17 +72,19 @@ class Inbox extends Component
                 $this->agents    = $svc->getAgents();
                 $this->teams     = $svc->getTeams();
                 $this->allLabels = $svc->getLabels();
-            } catch (\Exception $e) {}
+            } catch (\Throwable $e) {}
         }
 
         if ($phone = request('phone')) {
-            $foundId = $this->findConversationByPhone($phone);
-            if ($foundId) {
-                $this->selectConversation($foundId);
-            } else {
-                $this->pendingClientPhone = $phone;
-                $this->pendingClientName  = request('name', '');
-            }
+            try {
+                $foundId = $this->findConversationByPhone($phone);
+                if ($foundId) {
+                    $this->selectConversation($foundId);
+                } else {
+                    $this->pendingClientPhone = $phone;
+                    $this->pendingClientName  = request('name', '');
+                }
+            } catch (\Throwable $e) {}
         }
     }
 
@@ -170,30 +178,35 @@ class Inbox extends Component
         } catch (\Exception $e) {}
 
         $this->source = 'local';
-        $status = $this->filterStatus;
-        $this->conversations = CrmConversation::with('client')
-            ->when($status, fn($q) => $q->where('status', $status))
-            ->orderBy('last_message_at', 'desc')
-            ->get()
-            ->map(fn($c) => [
-                'id'               => $c->id,
-                'status'           => $c->status,
-                'labels'           => [],
-                'priority'         => null,
-                'muted'            => false,
-                'last_message_at'  => $c->last_message_at?->toDateTimeString(),
-                'client_name'      => $c->client->name ?? '—',
-                'client_phone'     => $c->client->phone ?? '',
-                'client_email'     => $c->client->email ?? '',
-                'unread'           => 0,
-                'conv_source'      => 'local',
-                'assigned_agent'   => '',
-                'assigned_agent_id' => 0,
-                'assigned_team'    => '',
-                'assigned_team_id' => 0,
-                'last_message'     => '',
-                'channel'          => $c->channel,
-            ])->values()->all();
+        try {
+            $status = $this->filterStatus;
+            $this->conversations = CrmConversation::with('client')
+                ->when($status, fn($q) => $q->where('status', $status))
+                ->orderBy('last_message_at', 'desc')
+                ->get()
+                ->map(fn($c) => [
+                    'id'               => $c->id,
+                    'status'           => $c->status,
+                    'labels'           => [],
+                    'priority'         => null,
+                    'muted'            => false,
+                    'last_message_at'  => $c->last_message_at?->toDateTimeString(),
+                    'client_name'      => $c->client->name ?? '—',
+                    'client_phone'     => $c->client->phone ?? '',
+                    'client_email'     => $c->client->email ?? '',
+                    'unread'           => 0,
+                    'conv_source'      => 'local',
+                    'assigned_agent'   => '',
+                    'assigned_agent_id' => 0,
+                    'assigned_team'    => '',
+                    'assigned_team_id' => 0,
+                    'last_message'     => '',
+                    'channel'          => $c->channel,
+                ])->values()->all();
+        } catch (\Throwable $e) {
+            \Log::error('Inbox local fallback failed: ' . $e->getMessage());
+            $this->conversations = [];
+        }
     }
 
     public function selectConversation($id)
