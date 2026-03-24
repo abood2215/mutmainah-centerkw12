@@ -104,8 +104,8 @@
         {{-- Conversation List --}}
         <div class="flex-1 overflow-y-auto p-2 space-y-0.5" style="scrollbar-width:thin;scrollbar-color:#e2e8f0 transparent;">
 
-            {{-- Loading skeleton when filter changes --}}
-            <div wire:loading wire:target="updatedFilterStatus" class="space-y-1 px-1 pt-1">
+            {{-- Loading skeleton when filter changes or conversations reload --}}
+            <div wire:loading wire:target="updatedFilterStatus,loadConversations,refreshAll" class="space-y-1 px-1 pt-1">
                 @for($i = 0; $i < 5; $i++)
                     <div class="flex items-start gap-3 p-3 rounded-xl animate-pulse bg-slate-50">
                         <div class="w-11 h-11 rounded-xl bg-slate-200 flex-shrink-0"></div>

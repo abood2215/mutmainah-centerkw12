@@ -152,7 +152,7 @@ class Inbox extends Component
                         'last_message_at' => isset($c['last_activity_at'])
                             ? \Carbon\Carbon::createFromTimestamp($c['last_activity_at'])->toDateTimeString()
                             : null,
-                        'client_name'     => $c['meta']['sender']['name'] ?? 'مجهول',
+                        'client_name'     => ($c['meta']['sender']['name'] ?? '') ?: (($c['meta']['sender']['phone_number'] ?? '') ?: 'مجهول'),
                         'client_phone'    => $c['meta']['sender']['phone_number'] ?? '',
                         'client_email'    => $c['meta']['sender']['email'] ?? '',
                         'unread'          => $c['unread_count'] ?? 0,
