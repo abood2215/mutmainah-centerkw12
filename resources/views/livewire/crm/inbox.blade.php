@@ -495,7 +495,7 @@
                             @php $prevDate = null; @endphp
 
                             @forelse($messages as $msg)
-                                <div wire:key="msg-{{ $msg['id'] ?? $loop->index }}">
+                              
                                 @php $msgDate = $msg['sent_at'] ? \Carbon\Carbon::parse($msg['sent_at'])->toDateString() : null; @endphp
 
                                 {{-- Date separator --}}
@@ -644,7 +644,7 @@
                                                     </div>
                                                     <div class="flex-1 min-w-0 text-right">
                                                         <p class="font-black text-indigo-700 text-[12px]">{{ $cr['title'] }}</p>
-                                                        <p class="text-slate-500 truncate text-[11px] mt-0.5">{{ Str::limit($cr['content'], 75) }}</p>
+                                                        <p class="text-slate-500 truncate text-[11px] mt-0.5">{{ \Illuminate\Support\Str::limit($cr['content'], 75) }}</p>
                                                     </div>
                                                 </button>
                                             @empty
